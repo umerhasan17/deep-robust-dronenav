@@ -11,7 +11,7 @@ import torch
 
 if __name__ == '__main__':
     #==========download image to debug==========
-    # Load image and rescale/resize to [-1,1] and 3x256x256
+    print("download image to debug...")
     subprocess.call("curl -O https://raw.githubusercontent.com/StanfordVL/taskonomy/master/taskbank/assets/test.png", shell=True)
     image = Image.open('test.png')
     x = TF.to_tensor(TF.resize(image, 256)) * 2 - 1
@@ -20,18 +20,23 @@ if __name__ == '__main__':
 
 
     #==========Mid level encoder==========
+    print("Passing mid level encoder...")
     x=mid_level_representations(x,REPRESENTATION_NAMES)
 
     # ==========FC==========
+    print("Passing fully connected layer...")
     fc=FC()
     x = x.view(BATCHSIZE,-1) #x = torch.flatten(x, start_dim=1)  # flatten all dimensions except batc
     x = fc(x)
     x = x.view(BATCHSIZE,8*len(REPRESENTATION_NAMES),16,16)
 
-
     # ==========Deconv==========
+    print("Passing residual decoder...")
     decoder = ResNet(layers=RESIDUAL_LAYERS_PER_BLOCK,channels=RESIDUAL_NEURON_LISTS,strides=STRIDES).to(DEVICE)
     x = decoder(x)
+
+    print("Done!")
+
 
 
 

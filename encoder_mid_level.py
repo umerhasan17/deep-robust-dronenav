@@ -9,7 +9,7 @@ def mid_level_representations(input_image_tensor, representation_names):
     """
     :param input_image_tensor:  (batch_size, 3, 256, 256)
     :param representation_names: list
-    :return: concatted image tensor to pass into FCN  (batch_size, 8*len(representation_names), 256, 256)
+    :return: concatted image tensor to pass into FCN  (batch_size, 8*len(representation_names), 16, 16)
     """
     representations=[]
     for name in representation_names:

@@ -40,3 +40,4 @@ def read_image(image_path, type='rgb'):
     if type == 'rgb':
       II = II[:,:,:3]
   return II
+

@@ -5,14 +5,14 @@
 #                        | variable name: img
 #                        v
 #           ---------------------------
-#           |mid_level_representations|
+#           |mid_level_representations| directly using the visualpriors pip install
 #           ---------------------------
 #                        |
 #                        | variable name: mid_level
 #                        v
-#                 ---------------
-#                 |   decoder   |
-#                 ---------------
+#               ---------------------
+#               |  fc ->  decoder   |  content : two functions, fully-connected layer "fc" and decoder resnet "decoder"
+#               ---------------------
 #                        |
 #                        | variable name: map_update
 #                        v

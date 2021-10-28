@@ -30,18 +30,24 @@
 #                        v
 #                   velocities
 #
-
+ 
 
 import pdb
 
-from PIL import Image
-import torchvision.transforms.functional as TF
-from encoder_mid_level import mid_level_representations
-from config import REPRESENTATION_NAMES,BATCHSIZE,DEVICE,RESIDUAL_LAYERS_PER_BLOCK,RESIDUAL_NEURON_LISTS,STRIDES
 import subprocess
-from fc import FC
-from decoder_residual import ResNet
+
+from networks.encoder_mid_level import mid_level_representations
+from networks.decoder_residual import ResNet
+from networks.fc import FC
+
+from PIL import Image
+
 import torch
+import torchvision.transforms.functional as TF
+
+from config import REPRESENTATION_NAMES,BATCHSIZE,DEVICE,RESIDUAL_LAYERS_PER_BLOCK,RESIDUAL_NEURON_LISTS,STRIDES
+
+
 
 if __name__ == '__main__':
     #==========download image to debug==========

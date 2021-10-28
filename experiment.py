@@ -35,7 +35,7 @@ if __name__ == '__main__':
     #==========download image to debug==========
     print("download image to debug...")
     # subprocess.call("curl -O https://raw.githubusercontent.com/StanfordVL/taskonomy/master/taskbank/assets/test.png", shell=True)
-    image = Image.open('test.png')
+    image = Image.open('Bedroom.jpg')
 
     
     feature_type = 'depth_euclidean'

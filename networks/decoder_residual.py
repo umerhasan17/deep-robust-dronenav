@@ -1,3 +1,30 @@
+""" 
+networks/decoder_residual.py
+----------------------------------------------------------------------------
+     Authors : Yongtao Wu, Umer Hasan Sayed, Titouan Renard
+     Last Update : Octobre 2021
+
+     Decoder nets for our mapping agent
+
+----------------------------------------------------------------------------
+Processing graph:
+     
+                from fully connected layer
+                       |
+                       | variable name: mid_level -- (BATCHSIZE x 3 x 256 x 256) tensor
+                       v
+          -----------done--------------
+          |                           | 
+          |  fc ->  UpSampleResNet    |  content : two functions, fully-connected layer "fc" and decoder resnet "decoder"
+          |                           | 
+          |                           |  (BATCHSIZE x 2048*REPRESENTATION_NUMBER) -(fc)->  (BATCHSIZE x 2*REPRESENTATION_NUMBER x 16 x 16) 
+          -----------------------------  
+                       |
+                       | variable name: map_update  -- (BATCHSIZE x 2 x 256 x 256) tensor // encodes confidence and free space channels
+                       v
+                to map update step
+  """
+
 import pdb
 import torch
 import torch.nn as nn
@@ -79,6 +106,51 @@ UpSampleBlock: simple deconvolutional module (performs upsampling)
         - planes    : number of output channels
         - size      : (default = (256,256))
         - stride    : (default = 1)
+
+---------------------------------------------------------------
+
+Forward processing graph:
+
+                  x_input
+                    |
+                    | (BATCHSIZE x inplanes x insize x insize) tensor
+                    v
+    ------------------------------------
+    | bilinear interpolation block:    | 
+    | (upsamples the input tensor)     | 
+    |                                  | 
+    |  nn.functional.interpolate       | 
+    |                                  | 
+    ------------------------------------
+                    |                                                                                                           
+                    | (BATCHSIZE x inplanes x size x size) tensor // notice the size has changed                                
+                    v                                                                                                           
+    ------------------------------------                                                                                        
+    | first conv block:                |                                                                                        
+    |                                  |                                                                                        
+    |  Conv2d -> BatchNorm2d -> ReLU   |                                                                                       
+    |                                  |                                                                                        
+    ------------------------------------                                                                                        
+                    |                                                                                                           
+                    |                              Residual connection                                                                             
+                    |------------------------------------------------------------------------------------------------------------
+                    |                                                                                                           |
+                    | (BATCHSIZE x planes x insize x insize) tensor // notice the channel number has changed                    |
+                    v                                                                                                           |
+    ------------------------------------                                                                                        |
+    | second conv block:               |                                                                                        |
+    |                                  |                                                                                        |
+    |  Conv2d -> BatchNorm2d -> ReLU   |                                                                                        |
+    |                                  |                                                                                        |
+    ------------------------------------                                                                                        |
+                    |                                                                                                           |
+                    | (BATCHSIZE x planes x insize x insize) tensor                                                             |
+                    |                                                                                                           |
+                    +<-----------------------------------------------------------------------------------------------------------
+                    |
+                    v
+                 output
+
 """
 class UpSampleBlock(nn.Module):
     def __init__(self, inplanes, planes, stride=1, size = (256,256)):
@@ -116,16 +188,56 @@ UpSampleBlock: simple upsampling resnet, used to regress a map from the dense re
         - channels      :
         - strides       :
         - block         :
+
+
+
+---------------------------------------------------------------
+
+Forward processing graph:
+
+                  x_input
+                    |
+                    | (BATCHSIZE x channel[0] x input_size x input_size) tensor 
+                    v
+    -----------------------------------------------------
+    | layer0:                                           | 
+    |  UpSampleBlock -> UpSampleBlock -> UpSampleBlock  | (layer[0] times)
+    -----------------------------------------------------
+                    |                                                                                                           
+                    | (BATCHSIZE x channel[1] x sizes[0] x sizes[0]) tensor                   
+                    v                                                                                 
+    -----------------------------------------------------
+    | layer1:                                           | 
+    |  UpSampleBlock -> UpSampleBlock -> UpSampleBlock  | (layer[1] times)
+    -----------------------------------------------------
+                    |
+                    | (BATCHSIZE x channel[2] x sizes[1] x sizes[1]) tensor                   
+                    v
+    -----------------------------------------------------
+    | layer2:                                           | 
+    |  UpSampleBlock -> UpSampleBlock -> UpSampleBlock  | (layer[2] times)
+    -----------------------------------------------------
+                    |
+                    | (BATCHSIZE x channel[3] x sizes[2] x sizes[2]) tensor                   
+                    v
+    -----------------------------------------------------
+    | layer0:                                           | 
+    |  UpSampleBlock -> UpSampleBlock -> UpSampleBlock  | (layer[3] times)
+    -----------------------------------------------------
+                    |
+                    | (BATCHSIZE x channel[4] x sizes[3] x sizes[3]) tensor                   
+                    v 
+                output (used as a map)
 """
 class UpResNet(nn.Module):
-    def __init__(self,  layers, inchannels, outchannels,strides,block=UpSampleBlock):
+    def __init__(self,  layers, channels, sizes, strides,block=UpSampleBlock):
         super().__init__()
         self.inplanes = 8*len(REPRESENTATION_NAMES)
 
-        self.layer0 = self._make_layer(block, inchannels[0], outchannels[0], layers[0], strides[0],(32,32))
-        self.layer1 = self._make_layer(block, inchannels[1], outchannels[1], layers[1], strides[1],(64,64))
-        self.layer2 = self._make_layer(block, inchannels[2], outchannels[2], layers[2], strides[2],(128,128))
-        self.layer3 = self._make_layer(block, inchannels[3], outchannels[3], layers[3], strides[2],(256,256))
+        self.layer0 = self._make_layer(block, channels[0], channels[1], layers[0], strides[0],(sizes[0],sizes[0]))
+        self.layer1 = self._make_layer(block, channels[1], channels[2], layers[1], strides[1],(sizes[1],sizes[1]))
+        self.layer2 = self._make_layer(block, channels[2], channels[3], layers[2], strides[2],(sizes[2],sizes[2]))
+        self.layer3 = self._make_layer(block, channels[3], channels[4], layers[3], strides[2],(sizes[3],sizes[3]))
         print("built net")
 
 

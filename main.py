@@ -32,7 +32,7 @@ Processing graph:
                        | variable name: map_update  -- (BATCHSIZE x 2 x 256 x 256) tensor // encodes confidence and free space channels
                        v
                   -----todo----                   -------done------
- TODO: Implement  |  combine  |   <-------------  |   transform   | <------------- previous_map -- (BATCHSIZE x 2[c,f] x 256 x 256) tensor
+ TODO: Implement  |  combine  |   <-------------  |   transform   | <------------- previous_map -- (BATCHSIZE x 2 x 256 x 256) tensor
                   -------------                   -----------------
                        |
                        | variable name: map 
@@ -59,7 +59,7 @@ from PIL import Image
 import torch
 import torchvision.transforms.functional as TF
 
-from config import REPRESENTATION_NAMES,BATCHSIZE,DEVICE,RESIDUAL_LAYERS_PER_BLOCK,RESIDUAL_NEURON_INCHANNEL,RESIDUAL_NEURON_OUTCHANNEL,STRIDES
+from config import REPRESENTATION_NAMES,BATCHSIZE,DEVICE,RESIDUAL_LAYERS_PER_BLOCK,RESIDUAL_NEURON_CHANNEL,STRIDES,RESIDUAL_SIZE
 
 
 
@@ -87,7 +87,7 @@ if __name__ == '__main__':
 
     # ==========Deconv==========
     print("Passing residual decoder...")
-    decoder = UpResNet(layers=RESIDUAL_LAYERS_PER_BLOCK,inchannels=RESIDUAL_NEURON_INCHANNEL,outchannels=RESIDUAL_NEURON_OUTCHANNEL,strides=STRIDES).to(DEVICE)
+    decoder = UpResNet(layers=RESIDUAL_LAYERS_PER_BLOCK,channels=RESIDUAL_NEURON_CHANNEL, sizes=RESIDUAL_SIZE, strides=STRIDES).to(DEVICE)
     map_update = decoder(activation)
 
     print("Done!")

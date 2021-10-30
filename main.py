@@ -59,7 +59,7 @@ from PIL import Image
 import torch
 import torchvision.transforms.functional as TF
 
-from config import REPRESENTATION_NAMES,BATCHSIZE,DEVICE,RESIDUAL_LAYERS_PER_BLOCK,RESIDUAL_NEURON_LISTS,STRIDES
+from config import REPRESENTATION_NAMES,BATCHSIZE,DEVICE,RESIDUAL_LAYERS_PER_BLOCK,RESIDUAL_NEURON_INCHANNEL,RESIDUAL_NEURON_OUTCHANNEL,STRIDES
 
 
 
@@ -87,7 +87,7 @@ if __name__ == '__main__':
 
     # ==========Deconv==========
     print("Passing residual decoder...")
-    decoder = UpResNet(layers=RESIDUAL_LAYERS_PER_BLOCK,channels=RESIDUAL_NEURON_LISTS,strides=STRIDES).to(DEVICE)
+    decoder = UpResNet(layers=RESIDUAL_LAYERS_PER_BLOCK,inchannels=RESIDUAL_NEURON_INCHANNEL,outchannels=RESIDUAL_NEURON_OUTCHANNEL,strides=STRIDES).to(DEVICE)
     map_update = decoder(activation)
 
     print("Done!")

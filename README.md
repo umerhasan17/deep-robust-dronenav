@@ -3,17 +3,19 @@
 
 ## Environment Setup
 
-### Install habitat-sim:
+### Install required packages:
 ```
-conda install habitat-sim=0.1.6 withbullet -c conda-forge -c aihabitat; 
+conda env create -f vis.yaml
 ```
+
+Note the below command is for installing habitat-sim (not needed if the conda environment is installed successfully
 
 ### Install habitat lab
 ```
 sudo apt update;
 sudo apt install pkg-config libhdf5-dev`;
 git clone https://github.com/facebookresearch/habitat-lab.git`;
-cd habitat-api; git checkout b5f2b00a25627ecb52b43b13ea96b05998d9a121;`
+cd habitat-lab; git checkout b5f2b00a25627ecb52b43b13ea96b05998d9a121;`
 pip install -r requirements.txt;
 python setup.py develop --all;
 ```

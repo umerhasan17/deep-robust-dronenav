@@ -58,7 +58,7 @@ from networks.decoder_residual import UpResNet                        # upsampli
 from networks.transform import egomotion_transform                    # upsampling resnet
 from networks.update import update_map                                # upsampling resnet
 from networks.fc import FC                                            # fully connected fc layer
-
+from utils.storage import GlobalRolloutStorage
 import torch
 import torchvision.transforms.functional as TF
 from PIL import Image
@@ -96,15 +96,14 @@ def forward(image,egomotion,prev_map,verbose = False):
     print("Passing transform and update steps...")
     prev_map = egomotion_transform(prev_map,egomotion)
     new_map = update_map(map_update,prev_map)
-
     print("Done!")
+    return new_map
 
 
 if __name__ == '__main__':
      print("download image to debug...")
-     # subprocess.call("curl -O https://raw.githubusercontent.com/StanfordVL/taskonomy/master/taskbank/assets/test.png", shell=True)
-     image = Image.open('test.png') #example image value
-
+     subprocess.call("curl -O https://raw.githubusercontent.com/StanfordVL/taskonomy/master/taskbank/assets/test.png", shell=True)
+     image = Image.open('test.png') #example image valuec
      prev_map_raw = Image.open('Bedroom.jpg') #example prevmap value
      prev_map = TF.to_tensor(TF.resize(image, 256))[0:2] * 2 - 1
      prev_map = prev_map.unsqueeze(0)                                                 # (1,3,256,256)
@@ -112,8 +111,31 @@ if __name__ == '__main__':
 
 
      egomotion = np.array([.1,0.,1.4]) #example egomotion value
+     new_map=forward(image,egomotion,prev_map,verbose=True)
 
-     forward(image,egomotion,prev_map,verbose=True)
+
+
+     # Starting environments
+     from env import make_vec_envs
+     from utils import get_args
+     torch.set_num_threads(1)
+     args = get_args()
+     envs = make_vec_envs(args)
+     obs, infos = envs.reset()
+     # Storage
+     g_rollouts = GlobalRolloutStorage(num_global_steps=128,
+                                       num_processes=1,
+                                       g_observation_space=(3,256,256),
+                                       g_action_space=2,
+                                       rec_state_size=1,
+                                       extras_size=1).to(DEVICE)
+     #input of ppo
+     global_input = prev_map
+     g_rollouts.obs[0].copy_(global_input)
+
+
+
+
 
 
 

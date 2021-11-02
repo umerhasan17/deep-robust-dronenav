@@ -55,7 +55,7 @@ def tensor_transform(input_map_tensor, transform):
     # unsqueezed_tensor = torch.unsqueeze(input_map_tensor,0)                        # (CxHxW) map tensor expanded to a (1xCxHxW) tensor
 
     # Compute grid transform tensor
-    grid = F.affine_grid(T, input_map_tensor.size(),align_corners = False)          # a(1xHxWx2) full affine grid transform tensor
+    grid = F.affine_grid(T, input_map_tensor.size())          # a(1xHxWx2) full affine grid transform tensor
     # Resample input tensor according to grid transform, returns a rotated and translated tensor
     output_map_tensor = F.grid_sample(input_map_tensor, grid)      # (1xCxHxW) transformed map
     return output_map_tensor

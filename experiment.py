@@ -52,7 +52,7 @@ def test_geom_transform(x = 0, y = 0, t = 0):
     
     feature_type = 'depth_euclidean'
     o_t = TF.to_tensor(TF.resize(image, 256))[0:1] * 2 - 1
-
+    print(o_t.size())
     d_X = np.array([x,y,t]) # advance 1[m] forward, 1[m] right, turn + 0.2 [rad]
 
     transformed_map = egomotion_transform(o_t,d_X)

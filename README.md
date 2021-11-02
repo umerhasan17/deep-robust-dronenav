@@ -11,6 +11,9 @@ conda env create -f vis.yaml
 Note the below command is for installing habitat-sim (not needed if the conda environment is installed successfully
 
 ### Install habitat lab
+
+Build habitat lab from source using the specified commit hash.
+
 ```
 sudo apt update;
 sudo apt install pkg-config libhdf5-dev`;

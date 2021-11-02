@@ -10,6 +10,10 @@ conda env create -f vis.yaml
 
 Note the below command is for installing habitat-sim (not needed if the conda environment is installed successfully
 
+```
+conda install habitat-sim=0.1.6 withbullet -c conda-forge -c aihabitat;
+```
+
 ### Install habitat lab
 
 Build habitat lab from source using the specified commit hash.

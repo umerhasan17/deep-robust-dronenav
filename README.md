@@ -26,7 +26,7 @@ python setup.py develop --all;
 import habitat_sim.registry as r
 register_move_fn = r.register_move_fn
 ```
-3. Modify GPU memory requirements in `arguments.py`
+3. Modify GPU memory requirements in `arguments.py`. Alernatively add the `--no_cuda` argument when running.
 ```
                     assert torch.cuda.get_device_properties(i).total_memory \
                             /1024/1024/1024 > 5.0, "Insufficient GPU memory"

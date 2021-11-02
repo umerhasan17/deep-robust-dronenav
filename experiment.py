@@ -9,7 +9,7 @@ from PIL import Image
 import numpy as np
 import torchvision.transforms.functional as TF
 import visualpriors
-from config import REPRESENTATION_NAMES,BATCHSIZE,DEVICE,RESIDUAL_LAYERS_PER_BLOCK,RESIDUAL_NEURON_LISTS,STRIDES
+# from config import REPRESENTATION_NAMES,BATCHSIZE,DEVICE,RESIDUAL_LAYERS_PER_BLOCK,RESIDUAL_NEURON_LISTS,STRIDES
 import subprocess
 from networks.fc import FC
 from networks.decoder_residual import ResNet

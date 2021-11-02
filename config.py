@@ -9,11 +9,8 @@ RESIDUAL_SIZE   = [32, 64, 128, 256]
 RESIDUAL_NEURON_CHANNEL   = [16, 8, 4, 2, 2]
 STRIDES = [1, 1, 1]
 
-
-
-
-
-
 BATCHSIZE = 4
+
+MAP_SIZE = 5 # map size (in [m]), given a 256x256 map, picking map size = 5 gives a resolution of ~2cm
 
 

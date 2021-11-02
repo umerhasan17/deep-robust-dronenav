@@ -132,7 +132,7 @@ Forward processing graph:
     |                                  |                                                                                        
     ------------------------------------                                                                                        
                     |                                                                                                           
-                    |                              Residual connection                                                                             
+                    |                              Residual connection, note that this skips a single layer, not great...
                     |------------------------------------------------------------------------------------------------------------
                     |                                                                                                           |
                     | (BATCHSIZE x planes x insize x insize) tensor // notice the channel number has changed                    |
@@ -182,14 +182,12 @@ class UpSampleBlock(nn.Module):
         return out
 
 """
-UpSampleBlock: simple upsampling resnet, used to regress a map from the dense representation embedding coming out of fc
+UpResNet: simple upsampling resnet, used to regress a map from the dense representation embedding coming out of fc
     Constructor arguments : 
-        - layers        :  
-        - channels      :
-        - strides       :
-        - block         :
-
-
+        - layers        : number of layer in each block used for the upsampling
+        - channels      : array that takes the channel number coming in and out of each block (see below)
+        - strides       : strides for convolution
+        - block         : what elementary block to use for the upsampling (default is the UpSampleBlock defined above
 
 ---------------------------------------------------------------
 

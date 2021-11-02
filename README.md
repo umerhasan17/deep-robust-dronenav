@@ -5,7 +5,7 @@
 
 ### Install habitat-sim:
 ```
-conda install habitat-sim=0.1.6 withbullet -c conda-forge -c aihabitat;
+conda install habitat-sim=0.1.6 withbullet -c conda-forge -c aihabitat; 
 ```
 
 ### Install habitat lab

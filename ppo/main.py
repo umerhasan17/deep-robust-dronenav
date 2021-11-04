@@ -1,17 +1,18 @@
 import copy
 import glob
+import logging
 import os
 import pdb
-import time
 from collections import deque
-
+import datetime
+import time
 import gym
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-
+from os.path import dirname, realpath, join, expanduser, normpath,isdir,split
 from a2c_ppo_acktr import algo, utils
 from a2c_ppo_acktr.algo import gail
 from a2c_ppo_acktr.arguments import get_args
@@ -19,7 +20,7 @@ from a2c_ppo_acktr.envs import make_vec_envs
 from a2c_ppo_acktr.model import Policy
 from a2c_ppo_acktr.storage import RolloutStorage
 from evaluation import evaluate
-
+from create_logger import create_logger,Logger_tensorboard
 
 def main():
     args = get_args()
@@ -88,11 +89,12 @@ def main():
             shuffle=True,
             drop_last=drop_last)
 
-    rollouts = RolloutStorage(args.num_steps, args.num_processes,
-                              envs.observation_space.shape, envs.action_space,
-                              actor_critic.recurrent_hidden_state_size)
-
-    obs = envs.reset()
+    rollouts = RolloutStorage(args.num_steps, #128
+                              args.num_processes, #1
+                              envs.observation_space.shape,  #(4, 84, 84) #???
+                              envs.action_space, #Discrete(6)
+                              actor_critic.recurrent_hidden_state_size) #1
+    obs = envs.reset() #(4, 84, 84) #???
     rollouts.obs[0].copy_(obs)
     rollouts.to(device)
 
@@ -101,8 +103,21 @@ def main():
     start = time.time()
     num_updates = int(
         args.num_env_steps) // args.num_steps // args.num_processes
-    for j in range(num_updates):
+    #args.num_env_steps:10e6 #args.num_steps 128   num_updates:9765
 
+    def make_path(output_path):
+        if not isdir(output_path):
+            os.makedirs(output_path)
+        return output_path
+    output_dir = normpath(make_path(join(args.save_dir, args.algo,
+                                       datetime.datetime.now().strftime("%Y%m%d%H%M%S"))))
+
+
+    _ = create_logger(output_dir)
+    logger_tb = Logger_tensorboard(output_dir, use_tensorboard=True)
+
+
+    for j in range(num_updates):
         if args.use_linear_lr_decay:
             # decrease learning rate linearly
             utils.update_linear_schedule(
@@ -166,12 +181,7 @@ def main():
         # save for every interval-th episode or for the last epoch
         if (j % args.save_interval == 0
                 or j == num_updates - 1) and args.save_dir != "":
-            save_path = os.path.join(args.save_dir, args.algo)
-            try:
-                os.makedirs(save_path)
-            except OSError:
-                pass
-
+            save_path = output_dir
             torch.save([
                 actor_critic,
                 getattr(utils.get_vec_normalize(envs), 'obs_rms', None)
@@ -180,14 +190,16 @@ def main():
         if j % args.log_interval == 0 and len(episode_rewards) > 1:
             total_num_steps = (j + 1) * args.num_processes * args.num_steps
             end = time.time()
-            print(
-                "Updates {}, num timesteps {}, FPS {} \n Last {} training episodes: mean/median reward {:.1f}/{:.1f}, min/max reward {:.1f}/{:.1f}\n"
-                .format(j, total_num_steps,
+            message="Updates {}, num timesteps {}, FPS {} \n Last {} training episodes: mean/median reward {:.1f}/{:.1f}, min/max reward {:.1f}/{:.1f}\n".\
+                format(j, total_num_steps,
                         int(total_num_steps / (end - start)),
                         len(episode_rewards), np.mean(episode_rewards),
                         np.median(episode_rewards), np.min(episode_rewards),
                         np.max(episode_rewards), dist_entropy, value_loss,
-                        action_loss))
+                        action_loss)
+            print(message)
+            logging.info(message)
+            logger_tb.add_losses({'mean reward ': np.mean(episode_rewards)}, total_num_steps)
 
         if (args.eval_interval is not None and len(episode_rewards) > 1
                 and j % args.eval_interval == 0):

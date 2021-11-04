@@ -1,11 +1,16 @@
-# Parts of the code in this file have been borrowed from:
-#    https://github.com/facebookresearch/habitat-api
+"""
+Borrowed from:
+    https://github.com/facebookresearch/habitat-api
+    https://github.com/ikostrikov/pytorch-a2c-ppo-acktr-gail
+    https://github.com/devendrachaplot/Neural-SLAM
+"""
 
 import numpy as np
 import torch
 from habitat.config.default import get_config as cfg_env
 from habitat.datasets.pointnav.pointnav_dataset import PointNavDatasetV1
 
+from config import HABITAT_CONFIGS_PATH
 from .exploration_env import Exploration_Env
 from habitat.core.vector_env import VectorEnv
 from habitat_baselines.config.default import get_config as cfg_baseline
@@ -31,8 +36,7 @@ def construct_envs(args):
     baseline_configs = []
     args_list = []
 
-    basic_config = cfg_env(config_paths=
-                           ["env/habitat/habitat_api/configs/" + args.task_config])
+    basic_config = cfg_env(config_paths=[HABITAT_CONFIGS_PATH + args.task_config])
     basic_config.defrost()
     basic_config.DATASET.SPLIT = args.split
     basic_config.freeze()
@@ -47,8 +51,7 @@ def construct_envs(args):
         scene_split_size = int(np.floor(len(scenes) / args.num_processes))
 
     for i in range(args.num_processes):
-        config_env = cfg_env(config_paths=
-                             ["env/habitat/habitat_api/configs/" + args.task_config])
+        config_env = cfg_env(config_paths=[HABITAT_CONFIGS_PATH + args.task_config])
         config_env.defrost()
 
         if len(scenes) > 0:

@@ -1,6 +1,8 @@
+import os
+
 import torch
-# DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-DEVICE = 'cpu'
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+# DEVICE = 'cpu'
 
 REPRESENTATION_NAMES = ['keypoints3d','depth_euclidean']
 
@@ -18,3 +20,6 @@ MAP_SIZE = 5 # map size (in [m]), given a 256x256 map, picking map size = 5 give
 
 # TODO add habitat_config yaml path
 # TODO add data path for use in habitat_config
+
+HABITAT_LAB_REPO_PATH = '../habitat-lab'
+HABITAT_CONFIGS_PATH = 'configs/'

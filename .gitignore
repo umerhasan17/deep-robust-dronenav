@@ -1,0 +1,19 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Code env
+.idea
+
+# Private files
+gibson_data_links.txt
+umer_research
+
+# Data / Models
+noise_models
+taskonomy_tf_models
+data

@@ -9,7 +9,9 @@ import numpy as np
 from habitat.sims.habitat_simulator.action_spaces import (
     HabitatSimV0ActionSpaceConfiguration,
 )
-from habitat_sim.agent.controls import register_move_fn
+
+import habitat_sim.registry as r
+register_move_fn = r.register_move_fn
 
 actuation_noise_fwd = pickle.load(open("noise_models/actuation_noise_fwd.pkl", 'rb'))
 actuation_noise_right = pickle.load(open("noise_models/actuation_noise_right.pkl", 'rb'))

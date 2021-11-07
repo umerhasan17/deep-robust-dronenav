@@ -15,12 +15,12 @@ class VecPyTorch():
     def __init__(self, venv, device):
         self.venv = venv
         self.num_envs = venv.num_envs
-        self.observation_space = venv.observation_space
-        self.action_space = venv.action_space
+        self.observation_space = venv.observation_spaces
+        self.action_space = venv.action_spaces
         self.device = device
 
     def reset(self):
-        obs, info = self.venv.reset()
+        obs, info = self.venv.reset()[0]
         obs = torch.from_numpy(obs).float().to(self.device)
         return obs, info
 

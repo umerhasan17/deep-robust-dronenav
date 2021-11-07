@@ -1,0 +1,12 @@
+DATASET:
+  TYPE: PointNav-v1
+  SPLIT: train
+  DATA_PATH: data/datasets/pointnav/habitat-test-scenes/v1/{split}/{split}.json.gz
+  SCENES_DIR: data/scene_datasets/
+SIMULATOR:
+  AGENT_0:
+    SENSORS: ['RGB_SENSOR', 'DEPTH_SENSOR', 'SEMANTIC_SENSOR']
+  SEMANTIC_SENSOR:
+    WIDTH: 256
+    HEIGHT: 256
+  TURN_ANGLE: 30

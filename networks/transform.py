@@ -59,4 +59,3 @@ def tensor_transform(input_map_tensor, transform):
     # Resample input tensor according to grid transform, returns a rotated and translated tensor
     output_map_tensor = F.grid_sample(input_map_tensor, grid)      # (1xCxHxW) transformed map
     return output_map_tensor
-

@@ -54,7 +54,7 @@ def test_geom_transform(x=0, y=0, t=0):
     image = Image.open('Bedroom.jpg')
 
     feature_type = 'depth_euclidean'
-    o_t = TF.to_tensor(TF.resize(image, 256))[0:1] * 2 - 1
+    o_t = TF.to_tensor(TF.resize(image, 256))
     o_t = torch.unsqueeze(o_t,0)
     print(o_t.size())
     d_X = np.array([x, y, t])  # advance 1[m] forward, 1[m] right, turn + 0.2 [rad]
@@ -66,5 +66,7 @@ def test_geom_transform(x=0, y=0, t=0):
     return image, transformed_map
 
 
-cogmap, transformed_map = test_geom_transform(0,.2,2)
-plt.plot(transformed_map[0,0,:,:])
+if __name__ == '__main__':
+    cogmap, transformed_map = test_geom_transform(0,.2,2)
+    plt.imshow(transformed_map[0, :, :].permute(1, 2, 0))
+    plt.show()

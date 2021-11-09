@@ -36,9 +36,14 @@ class VecPyTorch():
 
     def step(self, actions):
         actions = actions.cpu().numpy()
-        obs, reward, done, info = self.venv.step(actions)
+        original = self.venv.step(actions)
+        obs, reward, done, info = original[0]
+        # NOTE: had to add this for first episode and last episode step
+        if isinstance(obs, tuple):
+            print(f'Converting observation of length {len(obs)} to tensor of shape {obs[0].shape}. Action = {actions}')
+            obs = obs[0]
         obs = torch.from_numpy(obs).float().to(self.device)
-        reward = torch.from_numpy(reward).float()
+        reward = torch.tensor(reward)       #torch.from_numpy(reward).float()
         return obs, reward, done, info
 
     def get_rewards(self, inputs):

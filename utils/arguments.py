@@ -197,12 +197,12 @@ def get_args():
                     assert torch.cuda.get_device_properties(i).total_memory \
                             /1024/1024/1024 > 5.0, "Insufficient GPU memory"
 
-            num_processes_per_gpu = 1
-            num_processes_on_first_gpu = 1
+            num_processes_per_gpu = args.num_processes
+            num_processes_on_first_gpu = args.num_processes
 
             if num_gpus == 1:
                 args.num_processes_on_first_gpu = num_processes_on_first_gpu
-                args.num_processes_per_gpu = 0
+                args.num_processes_per_gpu = args.num_processes
                 args.num_processes = num_processes_on_first_gpu
             else:
                 total_threads = num_processes_per_gpu * (num_gpus - 1) \

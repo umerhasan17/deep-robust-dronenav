@@ -52,6 +52,7 @@ Processing graph:
 
 import pdb
 import subprocess
+from collections import deque
 
 from networks.encoder_mid_level import mid_level_representations  # mid_level wrapper class
 from networks.decoder_residual import UpResNet  # upsampling resnet
@@ -61,6 +62,7 @@ from networks.fc import FC  # fully connected fc layer
 from utils.storage import GlobalRolloutStorage
 import torch
 import gym
+import time
 from ppo import PPO
 
 import torchvision.transforms.functional as TF
@@ -111,7 +113,6 @@ def get_map():
     NotImplemented()
 
 
-
 def main():
     from env import make_vec_envs
     from utils.arguments import get_args
@@ -123,17 +124,17 @@ def main():
     envs = make_vec_envs(args)
     obs, infos = envs.reset()
 
-    # Calculating full and local map sizes
-    map_size = args.map_size_cm // args.map_resolution
-    full_w, full_h = map_size, map_size
-    local_w, local_h = int(full_w / 3.75), int(full_h / 3.75) # TODO global downscaling 3.75
+    # # Calculating full and local map sizes
+    # map_size = args.map_size_cm // args.map_resolution
+    # full_w, full_h = map_size, map_size
+    # local_w, local_h = int(full_w / 3.75), int(full_h / 3.75) # TODO global downscaling 3.75
 
     # Global policy observation space
-    g_observation_space = gym.spaces.Box(0, 1, (3, local_w, local_h), dtype='uint8') # TODO 8, local_w, local_h
+    g_observation_space = gym.spaces.Box(0, 1, (3, args.frame_width, args.frame_height), dtype='uint8')
 
     # Global policy action space
-    g_action_space = gym.spaces.Box(low=0.0, high=255.0,
-                                    shape=(2,), dtype=np.float32)
+    g_action_space = gym.spaces.Discrete(3) #?
+    # gym.spaces.Box(low=0.0, high=255.0,hape=(2,), dtype=np.float32)
 
     g_hidden_size = args.global_hidden_size
 
@@ -160,7 +161,7 @@ def main():
 
     # Storage
     g_rollouts = GlobalRolloutStorage(
-        num_steps=args.num_global_steps,
+        num_steps=args.max_episode_length,
         num_processes=1,
         obs_shape=g_observation_space.shape,
         action_space=g_action_space,
@@ -171,6 +172,78 @@ def main():
     # input of ppo
     global_input = obs
     g_rollouts.obs[0].copy_(global_input)
+
+    # Run Global Policy (global_goals = Long-Term Goal)
+    g_value, g_action, g_action_log_prob, g_rec_states = g_policy.act(
+        g_rollouts.obs[0],
+        g_rollouts.rec_states[0],
+        g_rollouts.masks[0],
+        extras=g_rollouts.extras[0],
+        deterministic=False
+    )
+
+    episode_rewards = deque(maxlen=10)
+
+
+    print('Start PPO training')
+    start = time.time()
+
+
+    for j in range(args.num_episodes):
+        for step in range(args.max_episode_length):
+            print(f'Episode {j}, Step {step}')
+            # Sample actions
+            with torch.no_grad():
+                value, action, action_log_prob, recurrent_hidden_states = g_policy.act(
+                    g_rollouts.obs[step],
+                    g_rollouts.rec_states[step],
+                    g_rollouts.masks[step],
+                    extras=g_rollouts.extras[step],
+                    deterministic=False,
+                )
+
+            obs, reward, done, infos = envs.step(action)
+
+
+            # for info in infos:
+            #     if 'episode' in info.keys():
+            #         episode_rewards.append(info['episode']['r'])
+
+            # If done then clean the history of observations.
+
+            masks = torch.FloatTensor([0.0] if done else [1.0])
+            bad_masks = torch.FloatTensor([0.0] if 'bad_transition' in infos.keys() else [1.0])
+            try:
+                g_rollouts.insert(obs, recurrent_hidden_states, action,
+                                action_log_prob, value, reward, masks, bad_masks)
+            except Exception as e:
+                print('Failed')
+        with torch.no_grad():
+            next_value = g_policy.get_value(
+                inputs=g_rollouts.obs[-1],
+                rnn_hxs=g_rollouts.rec_states[-1],
+                masks=g_rollouts.masks[-1],
+                extras=g_rollouts.extras[-1]
+            ).detach()
+
+        # Note: changed gae_lambda to tau and use_proper_time_limits to False
+        g_rollouts.compute_returns(next_value, args.use_gae, args.gamma, args.tau)
+
+        value_loss, action_loss, dist_entropy = g_agent.update(g_rollouts)
+
+        g_rollouts.after_update()
+
+        if j % args.log_interval == 0 and len(episode_rewards) > 1:
+            total_num_steps = (j + 1) * args.num_processes * args.num_steps
+            end = time.time()
+            message = "Updates {}, num timesteps {}, FPS {} \n Last {} training episodes: mean/median reward {:.1f}/{:.1f}, min/max reward {:.1f}/{:.1f}\n". \
+                format(j, total_num_steps,
+                       int(total_num_steps / (end - start)),
+                       len(episode_rewards), np.mean(episode_rewards),
+                       np.median(episode_rewards), np.min(episode_rewards),
+                       np.max(episode_rewards), dist_entropy, value_loss,
+                       action_loss)
+            print(message)
 
 
 if __name__ == '__main__':

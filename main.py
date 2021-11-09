@@ -160,7 +160,7 @@ def main():
     )
 
     # Storage
-    g_rollouts = GlobalRolloutStorage(
+    g_rollouts = GlobalRolloutStorage( # TODO these arguments look wrong
         num_steps=args.max_episode_length,
         num_processes=1,
         obs_shape=g_observation_space.shape,
@@ -173,25 +173,15 @@ def main():
     global_input = obs
     g_rollouts.obs[0].copy_(global_input)
 
-    # Run Global Policy (global_goals = Long-Term Goal)
-    g_value, g_action, g_action_log_prob, g_rec_states = g_policy.act(
-        g_rollouts.obs[0],
-        g_rollouts.rec_states[0],
-        g_rollouts.masks[0],
-        extras=g_rollouts.extras[0],
-        deterministic=False
-    )
-
-    episode_rewards = deque(maxlen=10)
-
 
     print('Start PPO training')
     start = time.time()
 
 
     for j in range(args.num_episodes):
+        episode_rewards = deque(maxlen=args.max_episode_length)
+
         for step in range(args.max_episode_length):
-            print(f'Episode {j}, Step {step}')
             # Sample actions
             with torch.no_grad():
                 value, action, action_log_prob, recurrent_hidden_states = g_policy.act(
@@ -203,11 +193,7 @@ def main():
                 )
 
             obs, reward, done, infos = envs.step(action)
-
-
-            # for info in infos:
-            #     if 'episode' in info.keys():
-            #         episode_rewards.append(info['episode']['r'])
+            episode_rewards.append(reward)
 
             # If done then clean the history of observations.
 
@@ -234,7 +220,7 @@ def main():
         g_rollouts.after_update()
 
         if j % args.log_interval == 0 and len(episode_rewards) > 1:
-            total_num_steps = (j + 1) * args.num_processes * args.num_steps
+            total_num_steps = (j + 1) * args.num_processes * args.max_episode_length
             end = time.time()
             message = "Updates {}, num timesteps {}, FPS {} \n Last {} training episodes: mean/median reward {:.1f}/{:.1f}, min/max reward {:.1f}/{:.1f}\n". \
                 format(j, total_num_steps,

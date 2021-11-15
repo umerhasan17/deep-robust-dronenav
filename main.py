@@ -193,6 +193,7 @@ def main():
                 )
 
             obs, reward, done, infos = envs.step(action)
+            print(f'Episode {j}, Step {step}, Action {action}, Reward {reward}')
             episode_rewards.append(reward)
 
             # If done then clean the history of observations.

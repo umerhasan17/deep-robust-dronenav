@@ -12,8 +12,10 @@ __pycache__/
 # Private files
 gibson_data_links.txt
 umer_research
+research
 
 # Data / Models
 noise_models
 taskonomy_tf_models
 data
+configs

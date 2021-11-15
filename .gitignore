@@ -13,9 +13,12 @@ __pycache__/
 gibson_data_links.txt
 umer_research
 research
+*.zip
 
 # Data / Models
 noise_models
 taskonomy_tf_models
 data
 configs
+tb
+*.log

@@ -5,41 +5,23 @@
 
 ### Install required packages:
 ```
-conda env create -f vis.yaml
+conda env create -f config/vis_env.yaml
 ```
 
-Note the below command is for installing habitat-sim (not needed if the conda environment is installed successfully
-
-```
-conda install habitat-sim=0.1.6 withbullet -c conda-forge -c aihabitat;
-```
-
-### Install habitat lab
+### Setup habitat lab folder
 
 Build habitat lab from source using the specified commit hash.
 
 ```
-sudo apt update;
-sudo apt install pkg-config libhdf5-dev`;
-git clone https://github.com/facebookresearch/habitat-lab.git`;
-cd habitat-lab; git checkout b5f2b00a25627ecb52b43b13ea96b05998d9a121;`
-pip install -r requirements.txt;
-python setup.py develop --all;
+cd habitat-api
+python setup.py develop --all
+cd ..
 ```
 
-### Install Neural Slam:
+### Run Train / Eval:
 
-1. Add configs/task/pointnav.yaml from https://github.com/facebookresearch/habitat-lab/blob/main/configs/tasks/pointnav.yaml 
-2. Replace register_move_fn import: 
-```
-import habitat_sim.registry as r
-register_move_fn = r.register_move_fn
-```
-3. Modify GPU memory requirements in `arguments.py`. Alernatively add the `--no_cuda` argument when running.
-```
-                    assert torch.cuda.get_device_properties(i).total_memory \
-                            /1024/1024/1024 > 5.0, "Insufficient GPU memory"
+Remember to activate conda environment before running command.
 
-            num_processes_per_gpu = 1
-            num_processes_on_first_gpu = 1
+```
+python run.py --exp-config config/habitat_config.yaml --run-type train
 ```

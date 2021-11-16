@@ -8,6 +8,7 @@ __pycache__/
 
 # Code env
 .idea
+*.egg-info
 
 # Private files
 gibson_data_links.txt

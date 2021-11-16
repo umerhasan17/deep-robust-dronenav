@@ -18,7 +18,7 @@ class FC(nn.Module):
         fc_layers = []
         for i in range(len(self.neuron_lists)-1):
             fc_layers.append(nn.Linear(self.neuron_lists[i],self.neuron_lists[i+1]))
-            fc_layers.append(nn.BatchNorm1d(self.neuron_lists[i+1]))
+            # fc_layers.append(nn.BatchNorm1d(self.neuron_lists[i+1])) # TODO don't use batch norm when batchsize = 1
             fc_layers.append(nn.ReLU())
         self.fc = nn.Sequential(*fc_layers)
 

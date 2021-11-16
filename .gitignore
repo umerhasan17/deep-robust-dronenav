@@ -16,6 +16,7 @@ research
 *.zip
 
 # Data / Models
+video_dir
 noise_models
 taskonomy_tf_models
 data

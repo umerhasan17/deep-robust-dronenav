@@ -30,6 +30,7 @@ from habitat_baselines.common.utils import (
 from habitat_baselines.rl.ppo import PPO, PointNavBaselinePolicy
 
 from habitat.utils import profiling_utils
+from mapper.map import create_map
 
 @baseline_registry.register_trainer(name="ppo")
 class PPOTrainer(BaseRLTrainer):
@@ -308,6 +309,9 @@ class PPOTrainer(BaseRLTrainer):
 
         observations = self.envs.reset()
         batch = batch_obs(observations, device=self.device)
+
+        # Convert input batch images to map images with mid level vision
+        batch['rgb'] = create_map(batch['rgb']).detach()  # TODO  !!!
 
         for sensor in rollouts.observations:
             rollouts.observations[sensor][0].copy_(batch[sensor])

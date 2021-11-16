@@ -22,7 +22,7 @@ import torch
 import numpy as np
 from scipy.spatial.transform import Rotation as R
 import torch.nn.functional as F
-from config import device, MAP_SIZE, RESIDUAL_SIZE, BATCHSIZE
+from config.config import device, MAP_SIZE, RESIDUAL_SIZE, BATCHSIZE
 
 """
 :param input_image_tensor:  (batch_size, 3, 256, 256)

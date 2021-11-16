@@ -10,6 +10,9 @@ import numpy as np
 from gym import spaces
 
 import habitat_sim
+
+import habitat
+from config.config import MAP_DIMENSIONS
 from habitat.core.dataset import Episode
 from habitat.core.logging import logger
 from habitat.core.registry import registry
@@ -20,9 +23,11 @@ from habitat.core.simulator import (
     Observations,
     RGBSensor,
     SemanticSensor,
+    Sensor,
     SensorSuite,
     ShortestPathPoint,
     Simulator,
+    SensorTypes,
 )
 from habitat.core.spaces import Space
 from habitat.utils import profiling_utils
@@ -82,6 +87,39 @@ class HabitatSimRGBSensor(RGBSensor):
         # remove alpha channel
         obs = obs[:, :, :RGBSENSOR_DIMENSION]
         return obs
+
+
+@registry.register_sensor(name='map_sensor')
+class HabitatSimMapSensor(Sensor):
+    """
+        Custom class to create a map sensor.
+    """
+
+    def __init__(self, config):
+        super().__init__(config=config)
+
+    # Defines the name of the sensor in the sensor suite dictionary
+    def _get_uuid(self, *args: Any, **kwargs: Any) -> str:
+        return 'map'
+
+    # Defines the type of the sensor
+    def _get_sensor_type(self, *args: Any, **kwargs: Any) -> SensorTypes:
+        return SensorTypes.TENSOR
+
+    # Defines the size and range of the observations of the sensor
+    def _get_observation_space(self, *args: Any, **kwargs: Any) -> Space:
+        return spaces.Box(
+            low=0,
+            high=255,
+            shape=(MAP_DIMENSIONS[1], MAP_DIMENSIONS[1], MAP_DIMENSIONS[0]),
+            dtype=np.uint8,
+        )
+
+    # This is called whenever reset is called or an action is taken
+    def get_observation(self, observations, *args: Any, episode, **kwargs: Any) -> Any:
+        obs = observations.get(self.uuid, None)
+        check_sim_obs(obs, self)
+        return NotImplemented()
 
 
 @registry.register_sensor

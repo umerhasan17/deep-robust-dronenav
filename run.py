@@ -15,6 +15,7 @@ from habitat_baselines.config.default import get_config
 
 
 def main():
+    torch.cuda.empty_cache()
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--run-type",

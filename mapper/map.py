@@ -18,7 +18,7 @@ def create_map(image):
 
     # ==========download image to debug==========
 
-    image = torch.swapaxes(image, 1, 3)
+    image = torch.transpose(image, 1, 3)
     print(image.shape)
     activation = image
     # ==========Mid level encoder==========
@@ -40,7 +40,7 @@ def create_map(image):
                        strides=STRIDES).to(device)
     map_update = decoder(activation)  # upsample to map object
 
-    output = torch.swapaxes(map_update, 1, 3)
+    output = torch.transpose(map_update, 1, 3)
     print(f'Returning output tensor with shape: {output.shape}')
 
     return output

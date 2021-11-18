@@ -12,7 +12,7 @@ from gym import spaces
 
 from habitat.config import Config
 from habitat.core.dataset import Dataset, Episode
-from habitat.core.embodied_task import (
+from habitat.core.embodied_task import ( 
     EmbodiedTask,
     Measure,
     SimulatorTaskAction,

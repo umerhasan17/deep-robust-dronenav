@@ -14,7 +14,7 @@ Processing graph:
                                          -----------------
     previous_map_transformed  <- ------  |   transform   | <----- previous_map -- (BATCHSIZE x 2 x 256 x 256) tensor
     -> (BATCHSIZE x 2 x 256 x 256)       -----------------
-  """
+"""
 
 import pdb
 # from torchvision import datasets, transforms
@@ -51,7 +51,6 @@ def tensor_transform(input_map_tensor, transform):
     r = np.array([R.from_euler('z',transform[2]).as_matrix()[0:2,0:2]])            # (2x2) rotation matrix for "angle" radiants, stored in a (1x2x2 tensor)
     x = np.array([[[transform[0]],[transform[1]]]])                                # (2x1) translation tensor, stored in a (1x2x1) tensor…
     T = torch.tensor(np.concatenate([r,x],axis=2), dtype=torch.float32)
-    print(T.shape)
     # unsqueezed_tensor = torch.unsqueeze(input_map_tensor,0)                        # (CxHxW) map tensor expanded to a (1xCxHxW) tensor
 
     # Compute grid transform tensor

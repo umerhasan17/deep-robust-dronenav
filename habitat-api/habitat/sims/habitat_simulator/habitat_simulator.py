@@ -4,12 +4,15 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
+import torch
 from typing import Any, List, Optional, Union
 
 import numpy as np
 from gym import spaces
 
 import habitat_sim
+
+import scipy.ndimage as nd
 
 import habitat
 from config.config import MAP_DIMENSIONS
@@ -31,6 +34,7 @@ from habitat.core.simulator import (
 )
 from habitat.core.spaces import Space
 from habitat.utils import profiling_utils
+from habitat.utils.visualizations import fog_of_war, maps
 
 RGBSENSOR_DIMENSION = 3
 
@@ -89,22 +93,28 @@ class HabitatSimRGBSensor(RGBSensor):
         return obs
 
 
-@registry.register_sensor(name='map_sensor')
+@registry.register_sensor(name='MAP_SENSOR')
 class HabitatSimMapSensor(Sensor):
+    sim_sensor_type: habitat_sim.SensorType
     """
         Custom class to create a map sensor.
     """
 
-    def __init__(self, config):
+    def __init__(self,sim, dataset, task, config):
+        # self.sim_sensor_type = habitat_sim.SensorType.TENSOR ----> TENSOR DOESN'T EXIST IN 2019 TENSORFLOW :(
+        self.sim_sensor_type = habitat_sim.SensorType.COLOR
         super().__init__(config=config)
-
+        self._sim = sim
+        self._dataset = dataset
+        self._task = task
+        
     # Defines the name of the sensor in the sensor suite dictionary
     def _get_uuid(self, *args: Any, **kwargs: Any) -> str:
         return 'map'
 
     # Defines the type of the sensor
     def _get_sensor_type(self, *args: Any, **kwargs: Any) -> SensorTypes:
-        return SensorTypes.TENSOR
+        return SensorTypes.COLOR
 
     # Defines the size and range of the observations of the sensor
     def _get_observation_space(self, *args: Any, **kwargs: Any) -> Space:
@@ -114,12 +124,40 @@ class HabitatSimMapSensor(Sensor):
             shape=(MAP_DIMENSIONS[1], MAP_DIMENSIONS[1], MAP_DIMENSIONS[0]),
             dtype=np.uint8,
         )
+        
+    def _affine_transform_matrix(self, transform) -> np.array:
+        # Construct a 2d rotation and transformation matrix (using scipy functions)
+        r = np.array([R.from_euler('z',transform[2]).as_matrix()[0:2,0:2]])            # (2x2) rotation matrix for "angle" radiants, stored in a (1x2x2 tensor)
+        x = np.array([[[transform[0]],[transform[1]]]])                                # (2x1) translation tensor, stored in a (1x2x1) tensor…
+        T = np.concatenate([r,x],axis=2), dtype=torch.float32
+        
+        return T
+
+    def affine_transform(self, input, transform) -> torch.Tensor:
+        return NotImplemented()
 
     # This is called whenever reset is called or an action is taken
     def get_observation(self, observations, *args: Any, episode, **kwargs: Any) -> Any:
-        obs = observations.get(self.uuid, None)
-        check_sim_obs(obs, self)
-        return NotImplemented()
+        # obs = observations.get(self.uuid, None)
+        # check_sim_obs(obs, self)
+        raw_map =  maps.get_topdown_map(
+            self._sim,
+            (MAP_DIMENSIONS[1], MAP_DIMENSIONS[1]),
+            20000,
+            False,
+        )
+        pos = self._sim.get_agent_state().position
+        T = np.eye(3)
+        raw_map = nd.affine_transform(raw_map,T)
+        
+        
+        
+        
+        output_map = torch.unsqueeze(torch.from_numpy(raw_map),0).to(torch.float32)
+        t_zeros = torch.zeros(2,MAP_DIMENSIONS[1], MAP_DIMENSIONS[1]).to(torch.float32)
+        output_map  = torch.cat((output_map,t_zeros), dim=0)
+        output_map  = output_map.permute(1, 2, 0)
+        return output_map
 
 
 @registry.register_sensor

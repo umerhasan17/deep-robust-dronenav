@@ -270,6 +270,7 @@ class EmbodiedTask:
             assert (
                 entity_type is not None
             ), f"invalid {entity_name} type {entity_cfg.TYPE}"
+
             entities[entity_name] = entity_type(
                 sim=self._sim,
                 config=entity_cfg,

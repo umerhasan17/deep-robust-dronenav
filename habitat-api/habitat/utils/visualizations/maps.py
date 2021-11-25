@@ -301,8 +301,8 @@ def get_topdown_map_sensor(
 
     pos = (sim.get_agent_state().position[0],sim.get_agent_state().position[2])
     start_height = sim.get_agent_state().position[1]
-    sim_quat = sim.get_agent_state().rotation()
-    print(rot.as_euler('zxy'))
+    sim_quat = sim.get_agent_state().rotation
+    alpha = quat_to_angle_axis(sim_quat)[0]
 
     # Search over grid for valid points.
     for ii in range(map_resolution[0]):
@@ -310,8 +310,8 @@ def get_topdown_map_sensor(
             dx = (map_size[0]/map_resolution[0])*(ii-np.floor(map_resolution[0]/2))
             dy = (map_size[1]/map_resolution[1])*(jj-np.floor(map_resolution[1]/2))
             
-            real_x = pos[0] + dx
-            real_y = pos[1] + dy
+            real_x = pos[0] + dx * np.cos(alpha) + dy * np.sin(alpha)
+            real_y = pos[1] - dx * np.sin(alpha) + dy * np.cos(alpha)
             
             valid_point = sim.is_navigable(
                 [real_x, start_height, real_y]
@@ -320,7 +320,6 @@ def get_topdown_map_sensor(
                 MAP_VALID_POINT if valid_point else MAP_INVALID_POINT
             )
             
-    print(top_down_map)
     return top_down_map
 
 def get_topdown_map(

@@ -128,16 +128,6 @@ class HabitatSimMapSensor(Sensor):
             dtype=np.uint8,
         )
         
-    def _affine_transform_matrix(self, transform) -> np.array:
-        # Construct a 2d rotation and transformation matrix (using scipy functions)
-        r = np.array([R.from_euler('z',transform[2]).as_matrix()[0:2,0:2]])            # (2x2) rotation matrix for "angle" radiants, stored in a (1x2x2 tensor)
-        x = np.array([[[transform[0]],[transform[1]]]])                                # (2x1) translation tensor, stored in a (1x2x1) tensor…
-        T = np.concatenate([r,x],axis=2)
-        
-        return T
-
-    def affine_transform(self, input, transform) -> torch.Tensor:
-        return torch.Tensor(nd.affine_transform(input, transform))
 
     # This is called whenever reset is called or an action is taken
     def get_observation(self, observations, *args: Any, episode, **kwargs: Any) -> Any:
@@ -153,7 +143,7 @@ class HabitatSimMapSensor(Sensor):
         raw_map = nd.affine_transform(raw_map,T)
         
         
-        plt.imsave('map'+str(self._sim.get_world_time())+'.jpeg', raw_map)
+        plt.imsave('debug/map'+str(int(self._sim.get_world_time()*50))+'.jpeg', raw_map)
         
         output_map = torch.unsqueeze(torch.from_numpy(raw_map),0).to(torch.float32)
         t_zeros = torch.zeros(2,MAP_DIMENSIONS[1], MAP_DIMENSIONS[1]).to(torch.float32)

@@ -58,12 +58,6 @@ def run_exp(exp_config: str, run_type: str, opts=None) -> None:
     random.seed(config.TASK_CONFIG.SEED)
     np.random.seed(config.TASK_CONFIG.SEED)
     torch.manual_seed(config.TASK_CONFIG.SEED)
-    
-    config.defrost()
-    config.TASK_CONFIG.TASK.MAP_SENSOR = habitat.Config()
-    config.TASK_CONFIG.TASK.MAP_SENSOR.TYPE = "MAP_SENSOR"
-    config.TASK_CONFIG.TASK.SENSORS.append("MAP_SENSOR")
-    config.freeze()
 
     trainer_init = baseline_registry.get_trainer(config.TRAINER_NAME)   #we get the habitat_baselines.rl.ppo.ppo_trainer.PPOTrainer class
     assert trainer_init is not None, f"{config.TRAINER_NAME} is not supported"

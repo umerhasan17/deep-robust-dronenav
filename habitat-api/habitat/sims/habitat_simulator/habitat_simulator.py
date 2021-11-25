@@ -108,13 +108,11 @@ class HabitatSimMapSensor(Sensor):
         Custom class to create a map sensor.
     """
 
-    def __init__(self, sim, dataset, task, config):
+    def __init__(self, sim, config):
         # self.sim_sensor_type = habitat_sim.SensorType.TENSOR ----> TENSOR DOESN'T EXIST IN 2019 TENSORFLOW :(
-        self.sim_sensor_type = SensorTypes.TENSOR
+        self.sim_sensor_type = habitat_sim.SensorType.COLOR
         super().__init__(config=config)
         self._sim = sim
-        self._dataset = dataset
-        self._task = task
         self.image_number = 0
         self.cone = self.vis_cone((MAP_DIMENSIONS[1], MAP_DIMENSIONS[2]), np.pi/1.1)
         
@@ -130,8 +128,8 @@ class HabitatSimMapSensor(Sensor):
     def _get_observation_space(self, *args: Any, **kwargs: Any) -> Space:
         return spaces.Box(
             low=0,
-            high=255,
-            shape=(MAP_DIMENSIONS[1], MAP_DIMENSIONS[1], MAP_DIMENSIONS[0]),
+            high=1,
+            shape=(MAP_DIMENSIONS[1], MAP_DIMENSIONS[2], MAP_DIMENSIONS[0]),
             dtype=np.uint8,
         )
         
@@ -153,7 +151,7 @@ class HabitatSimMapSensor(Sensor):
         return cone
 
     # This is called whenever reset is called or an action is taken
-    def get_observation(self, observations, *args: Any, episode, **kwargs: Any) -> Any:
+    def get_observation(self, _) -> Any:
         # print("pos = " + str(self._sim.get_agent_state().position))
         
         raw_map =  maps.get_topdown_map_sensor( # this is kinda not great, ideally we should only compute a map on reset and just reuse the same map file every step (differently translated)
@@ -270,7 +268,11 @@ class HabitatSim(habitat_sim.Simulator, Simulator):
             assert sensor_type is not None, "invalid sensor type {}".format(
                 sensor_cfg.TYPE
             )
-            sim_sensors.append(sensor_type(sensor_cfg))
+
+            if sensor_cfg.TYPE == 'MAP_SENSOR':
+                sim_sensors.append(sensor_type(self, sensor_cfg))
+            else:
+                sim_sensors.append(sensor_type(sensor_cfg))
 
         self._sensor_suite = SensorSuite(sim_sensors)
         self.sim_config = self.create_sim_config(self._sensor_suite)

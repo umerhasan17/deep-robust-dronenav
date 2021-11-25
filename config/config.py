@@ -15,7 +15,7 @@ IMG_DIMENSIONS = (3, 256, 256) # mid level reps are in colour right now
 MAP_DIMENSIONS = (3, 256, 256)
 BATCHSIZE = 4
 
-MAP_SIZE = 5 # map size (in [m]), given a 256x256 map, picking map size = 5 gives a resolution of ~2cm
+MAP_SIZE = (5,5) # map size (in [m]), given a 256x256 map, picking map size = 5 gives a resolution of ~2cm
 
 
 # TODO add habitat_config yaml path

@@ -250,11 +250,8 @@ def _outline_border(top_down_map):
 
 def get_topdown_map_sensor(
     sim: Simulator,
-    map_resolution: Tuple[int, int] = (1250, 1250),
-    map_limits: Tuple[int, int] = (None,None),
-    num_samples: int = 20000,
-    draw_border: bool = True,
-    center: bool = False,
+    map_resolution: Tuple[int, int] = (256, 256),
+    map_size: Tuple[int, int] = (5, 5),
 ) -> np.ndarray:
     r"""Return a top-down occupancy map for a sim. Note, this only returns valid
     values for whatever floor the agent is currently on.
@@ -278,12 +275,17 @@ def get_topdown_map_sensor(
 
     pos = (sim.get_agent_state().position[0],sim.get_agent_state().position[2])
     start_height = sim.get_agent_state().position[1]
+    sim_quat = sim.get_agent_state().rotation()
+    print(rot.as_euler('zxy'))
 
     # Search over grid for valid points.
     for ii in range(map_resolution[0]):
         for jj in range(map_resolution[1]):
-            real_x = ii/(map_resolution[0]/2) -pos[0]
-            real_y = jj/(map_resolution[1]/2)  -pos[1]
+            dx = (map_size[0]/map_resolution[0])*(ii-np.floor(map_resolution[0]/2))
+            dy = (map_size[1]/map_resolution[1])*(jj-np.floor(map_resolution[1]/2))
+            
+            real_x = pos[0] + dx
+            real_y = pos[1] + dy
             
             valid_point = sim.is_navigable(
                 [real_x, start_height, real_y]

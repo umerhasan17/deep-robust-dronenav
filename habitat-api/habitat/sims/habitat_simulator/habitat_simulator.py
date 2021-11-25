@@ -16,7 +16,7 @@ import numpy as np
 import scipy.ndimage as nd
 
 import habitat
-from config.config import MAP_DIMENSIONS
+from config.config import MAP_DIMENSIONS, MAP_SIZE
 from habitat.core.dataset import Episode
 from habitat.core.logging import logger
 from habitat.core.registry import registry
@@ -145,18 +145,15 @@ class HabitatSimMapSensor(Sensor):
         
         raw_map =  maps.get_topdown_map_sensor( # this is kinda not great, ideally we should only compute a map on reset and just reuse the same map file every step (differently translated)
             sim =  self._sim,
-            map_resolution = (256, 256),
-            map_limits = (-60,90),
-            num_samples = 20000,
-            draw_border = False,
-            # center = True,
+            map_resolution = (MAP_DIMENSIONS[1], MAP_DIMENSIONS[2]),
+            map_size = (MAP_SIZE[0], MAP_SIZE[1]),
         )
         pos = self._sim.get_agent_state().position
         T = np.eye(3)
         raw_map = nd.affine_transform(raw_map,T)
         
         
-        plt.imsave('map.jpeg', raw_map)
+        plt.imsave('map'+str(self._sim.get_world_time())+'.jpeg', raw_map)
         
         output_map = torch.unsqueeze(torch.from_numpy(raw_map),0).to(torch.float32)
         t_zeros = torch.zeros(2,MAP_DIMENSIONS[1], MAP_DIMENSIONS[1]).to(torch.float32)

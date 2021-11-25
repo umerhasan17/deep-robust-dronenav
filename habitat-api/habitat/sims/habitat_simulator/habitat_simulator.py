@@ -118,7 +118,7 @@ class HabitatSimMapSensor(Sensor):
         self._sim = sim
         self.image_number = 0
         self.cone = self.vis_cone((MAP_DIMENSIONS[1], MAP_DIMENSIONS[2]), np.pi/1.1)
-        self.map_scale_factor = 3
+        self.map_scale_factor = 4
         self.map_upsample_factor = 2
         self.global_map = None
         self.origin = None
@@ -156,6 +156,15 @@ class HabitatSimMapSensor(Sensor):
                     cone[ii,jj] = 0
 
         return cone
+    
+    def compute_global_map(self):
+        self.global_map = maps.get_topdown_map_sensor( # this is kinda not great, ideally we should only compute a map on reset and just reuse the same map file every step (differently translated)
+                sim=self._sim,
+                map_resolution=(MAP_DIMENSIONS[1] * self.map_scale_factor // self.map_upsample_factor, MAP_DIMENSIONS[2] * self.map_scale_factor // self.map_upsample_factor),
+                map_size=(MAP_SIZE[0]* self.map_scale_factor, MAP_SIZE[1]* self.map_scale_factor),
+            )
+        self.global_map = cv2.cv2.resize(self.global_map, (MAP_DIMENSIONS[1] * self.map_scale_factor, MAP_DIMENSIONS[2] * self.map_scale_factor))
+        # Compute origin
 
     # This is called whenever reset is called or an action is taken
     def get_observation(self, _) -> Any:
@@ -166,15 +175,9 @@ class HabitatSimMapSensor(Sensor):
         alpha = -quat_to_angle_axis(sim_quat)[0] + np.pi/2
 
         if self.global_map is None:
-            self.global_map = maps.get_topdown_map_sensor( # this is kinda not great, ideally we should only compute a map on reset and just reuse the same map file every step (differently translated)
-                sim=self._sim,
-                map_resolution=(MAP_DIMENSIONS[1] * self.map_scale_factor // self.map_upsample_factor, MAP_DIMENSIONS[2] * self.map_scale_factor // self.map_upsample_factor),
-                map_size=(MAP_SIZE[0]* self.map_scale_factor, MAP_SIZE[1]* self.map_scale_factor),
-            )
-            self.global_map = cv2.cv2.resize(self.global_map, (MAP_DIMENSIONS[1] * self.map_scale_factor, MAP_DIMENSIONS[2] * self.map_scale_factor))
-            # Compute origin
+            self.compute_global_map()
             self.origin = np.array([pos[0], pos[1], alpha])
-            plt.imsave('debug/global_map' + '.jpeg', self.global_map)
+            # plt.imsave('debug/global_map' + '.jpeg', self.global_map)
 
         state = np.array([pos[0],pos[1],alpha])
 
@@ -183,19 +186,20 @@ class HabitatSimMapSensor(Sensor):
         di = np.floor(displacement[0] * (MAP_DIMENSIONS[1]/MAP_SIZE[0]))
         dj = np.floor(displacement[1] * (MAP_DIMENSIONS[2]/MAP_SIZE[1]))
 
-        scale = np.diag([1/self.map_scale_factor,1/self.map_scale_factor,1])
         translation = np.array([[1, 0, di],
-                                 [0, 1, dj],
-                                 [0, 0, 1]])
+                                [0, 1, dj],
+                                [0, 0, 1]])
+        
+        output_map = nd.affine_transform(self.global_map,translation)
+        output_map = nd.rotate(output_map,displacement[2]*(180/np.pi),reshape=False)
+        width = output_map.shape[0]
+        height = output_map.shape[1]
+        cy = height // 2
+        cx = width // 2
+        output_map =  output_map[cx-width//(2*self.map_scale_factor):cx+width//(2*self.map_scale_factor),cy-width//(2*self.map_scale_factor):cy+height//(2*self.map_scale_factor)]
 
-        rotation = np.array([[np.cos(displacement[2]), np.sin(displacement[2]), 0],
-                               [ - np.sin(displacement[2]), np.cos(displacement[2]), 0],
-                               [   0                      , 0                      , 1,]])
-        T = translation * scale * rotation
-        output_map = nd.affine_transform(self.global_map,T)
-
-        # raw_map = self.cone * raw_map
-        plt.imsave('debug/map'+str(self.image_number)+'.jpeg', output_map)
+        output_map = self.cone * output_map
+        # plt.imsave('debug/map'+str(self.image_number)+'.jpeg', output_map)
 
         output_map = torch.unsqueeze(torch.from_numpy(output_map),0).to(torch.float32)
         confmap = torch.unsqueeze(torch.from_numpy(self.cone),0).to(torch.float32)

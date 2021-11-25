@@ -3,7 +3,7 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
-
+import cv2.cv2
 import torch
 from typing import Any, List, Optional, Union
 
@@ -16,7 +16,7 @@ import numpy as np
 import scipy.ndimage as nd
 
 import habitat
-from config.config import MAP_DIMENSIONS, MAP_SIZE
+from config.config import MAP_DIMENSIONS, MAP_SIZE, MAP_DOWNSAMPLE
 from habitat.core.dataset import Episode
 from habitat.core.logging import logger
 from habitat.core.registry import registry
@@ -95,7 +95,7 @@ class HabitatSimRGBSensor(RGBSensor):
 
         # remove alpha channel
         obs = obs[:, :, :RGBSENSOR_DIMENSION]
-        plt.imsave('debug/rgb'+str(self.image_number)+'.jpeg', obs)
+        # plt.imsave('debug/rgb'+str(self.image_number)+'.jpeg', obs)
         
         self.image_number = self.image_number + 1
         return obs
@@ -155,10 +155,13 @@ class HabitatSimMapSensor(Sensor):
         # print("pos = " + str(self._sim.get_agent_state().position))
         
         raw_map =  maps.get_topdown_map_sensor( # this is kinda not great, ideally we should only compute a map on reset and just reuse the same map file every step (differently translated)
-            sim =  self._sim,
-            map_resolution = (MAP_DIMENSIONS[1], MAP_DIMENSIONS[2]),
+            sim = self._sim,
+            map_resolution = (MAP_DIMENSIONS[1] // MAP_DOWNSAMPLE, MAP_DIMENSIONS[2] // MAP_DOWNSAMPLE),
             map_size = (MAP_SIZE[0], MAP_SIZE[1]),
         )
+
+        raw_map = cv2.cv2.resize(raw_map, dsize=(MAP_DIMENSIONS[1], MAP_DIMENSIONS[2]), interpolation=cv2.cv2.INTER_LINEAR)
+
         raw_map = self.cone * raw_map
         plt.imsave('debug/map'+str(self.image_number)+'.jpeg', raw_map)
         

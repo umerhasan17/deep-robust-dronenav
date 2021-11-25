@@ -13,6 +13,7 @@ RESIDUAL_NEURON_CHANNEL = [16, 8, 4, 2, 3] # TODO change 3 back to 2 (2 images s
 STRIDES = [1, 1, 1]
 IMG_DIMENSIONS = (3, 256, 256) # mid level reps are in colour right now
 MAP_DIMENSIONS = (2, 256, 256)
+MAP_DOWNSAMPLE = 2 ** 3
 BATCHSIZE = 4
 
 MAP_SIZE = (5,5) # map size (in [m]), given a 256x256 map, picking map size = 5 gives a resolution of ~2cm

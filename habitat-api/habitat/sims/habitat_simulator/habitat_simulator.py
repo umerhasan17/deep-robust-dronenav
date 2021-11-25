@@ -15,6 +15,13 @@ import habitat_sim
 
 import numpy as np
 import scipy.ndimage as nd
+from matplotlib.transforms import Affine2D
+try:
+    import cupyx.scipy.ndimage as ndc
+    CUPYAVAILABLE = True
+except ImportError:
+    print("cuda not enabled for affine transforms")
+    CUPYAVAILABLE = False
 
 import habitat
 from config.config import MAP_DIMENSIONS, MAP_SIZE, MAP_DOWNSAMPLE
@@ -186,17 +193,21 @@ class HabitatSimMapSensor(Sensor):
         di = np.floor(displacement[0] * (MAP_DIMENSIONS[1]/MAP_SIZE[0]))
         dj = np.floor(displacement[1] * (MAP_DIMENSIONS[2]/MAP_SIZE[1]))
 
-        translation = np.array([[1, 0, di],
-                                [0, 1, dj],
-                                [0, 0, 1]])
         
-        output_map = nd.affine_transform(self.global_map,translation)
-        output_map = nd.rotate(output_map,displacement[2]*(180/np.pi),reshape=False)
-        width = output_map.shape[0]
-        height = output_map.shape[1]
+        
+        width = self.global_map.shape[0]
+        height = self.global_map.shape[1]
+        T = (Affine2D().rotate_around(width//2,height//2,displacement[2]) + Affine2D().translate(tx = di, ty = dj)).get_matrix()
+        
+        if CUPYAVAILABLE:
+            output_map = ndc.affine_transform(self.global_map,T)
+        else:
+            output_map = nd.affine_transform(self.global_map,T)
+        
         cy = height // 2
         cx = width // 2
-        output_map =  output_map[cx-width//(2*self.map_scale_factor):cx+width//(2*self.map_scale_factor),cy-width//(2*self.map_scale_factor):cy+height//(2*self.map_scale_factor)]
+        output_map =  output_map[cx-width//(2*self.map_scale_factor):cx+width//(2*self.map_scale_factor),\
+                                cy-width//(2*self.map_scale_factor):cy+height//(2*self.map_scale_factor)]
 
         output_map = self.cone * output_map
         # plt.imsave('debug/map'+str(self.image_number)+'.jpeg', output_map)

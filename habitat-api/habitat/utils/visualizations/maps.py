@@ -248,12 +248,60 @@ def _outline_border(top_down_map):
     top_down_map[1:][up_down_nav_block] = MAP_BORDER_INDICATOR
 
 
+def get_topdown_map_sensor(
+    sim: Simulator,
+    map_resolution: Tuple[int, int] = (1250, 1250),
+    map_limits: Tuple[int, int] = (None,None),
+    num_samples: int = 20000,
+    draw_border: bool = True,
+    center: bool = False,
+) -> np.ndarray:
+    r"""Return a top-down occupancy map for a sim. Note, this only returns valid
+    values for whatever floor the agent is currently on.
+
+    Args:
+        sim: The simulator.
+        map_resolution: The resolution of map which will be computed and
+            returned.
+        map_limits: Real worls limits of where we want to render the map.
+        num_samples: The number of random navigable points which will be
+            initially
+            sampled. For large environments it may need to be increased.
+        draw_border: Whether to outline the border of the occupied spaces.
+
+    Returns:
+        Image containing 0 if occupied, 1 if unoccupied, and 2 if border (if
+        the flag is set).
+    """
+    top_down_map = np.zeros(map_resolution, dtype=np.uint8)
+    border_padding = 3
+
+    pos = (sim.get_agent_state().position[0],sim.get_agent_state().position[2])
+    start_height = sim.get_agent_state().position[1]
+
+    # Search over grid for valid points.
+    for ii in range(map_resolution[0]):
+        for jj in range(map_resolution[1]):
+            real_x = ii/(map_resolution[0]/2) -pos[0]
+            real_y = jj/(map_resolution[1]/2)  -pos[1]
+            
+            valid_point = sim.is_navigable(
+                [real_x, start_height, real_y]
+            )
+            top_down_map[ii, jj] = (
+                MAP_VALID_POINT if valid_point else MAP_INVALID_POINT
+            )
+            
+    print(top_down_map)
+    return top_down_map
+
 def get_topdown_map(
     sim: Simulator,
     map_resolution: Tuple[int, int] = (1250, 1250),
     map_limits: Tuple[int, int] = (None,None),
     num_samples: int = 20000,
     draw_border: bool = True,
+    center: bool = False,
 ) -> np.ndarray:
     r"""Return a top-down occupancy map for a sim. Note, this only returns valid
     values for whatever floor the agent is currently on.
@@ -285,6 +333,7 @@ def get_topdown_map(
         # Check if on same level as original
         if np.abs(start_height - point[1]) > 0.5:
             continue
+        print(point[0], point[2])
         g_x, g_y = to_grid(
             point[0], point[2], COORDINATE_MIN, COORDINATE_MAX, map_resolution
         )
@@ -302,13 +351,25 @@ def get_topdown_map(
         max(range_y[0] - padding, 0),
         min(range_y[-1] + padding + 1, top_down_map.shape[1]),
     )
+    
+    # print(range_x, range_y)
+
+    if map_limits[0] is not None:
+        cmin = map_limits[0]
+        cmax = map_limits[1]
+    else:
+        cmin = COORDINATE_MIN
+        cmax = COORDINATE_MAX
 
     # Search over grid for valid points.
     for ii in range(range_x[0], range_x[1]):
         for jj in range(range_y[0], range_y[1]):
             realworld_x, realworld_y = from_grid(
-                ii, jj, COORDINATE_MIN, COORDINATE_MAX, map_resolution
+                ii, jj, cmin, cmax, map_resolution
             )
+            if center:
+                realworld_x = realworld_x - sim.get_agent_state().position[0]
+                realworld_y = realworld_y - sim.get_agent_state().position[2]
             valid_point = sim.is_navigable(
                 [realworld_x, start_height, realworld_y]
             )

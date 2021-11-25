@@ -141,13 +141,15 @@ class HabitatSimMapSensor(Sensor):
 
     # This is called whenever reset is called or an action is taken
     def get_observation(self, observations, *args: Any, episode, **kwargs: Any) -> Any:
-        print("pos = " + str(self._sim.get_agent_state().position))
+        # print("pos = " + str(self._sim.get_agent_state().position))
         
-        raw_map =  maps.get_topdown_map( # this is kinda not great, ideally we should only compute a map on reset and just reuse the same map file every step (differently translated)
-            self._sim,
-            (MAP_DIMENSIONS[1], MAP_DIMENSIONS[1]),
-            20000,
-            True,
+        raw_map =  maps.get_topdown_map_sensor( # this is kinda not great, ideally we should only compute a map on reset and just reuse the same map file every step (differently translated)
+            sim =  self._sim,
+            map_resolution = (256, 256),
+            map_limits = (-60,90),
+            num_samples = 20000,
+            draw_border = False,
+            # center = True,
         )
         pos = self._sim.get_agent_state().position
         T = np.eye(3)

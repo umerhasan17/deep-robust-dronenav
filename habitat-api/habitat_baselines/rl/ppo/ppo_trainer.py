@@ -310,9 +310,6 @@ class PPOTrainer(BaseRLTrainer):
         observations = self.envs.reset()
         batch = batch_obs(observations, device=self.device)
 
-        # Convert input batch images to map images with mid level vision
-        batch['rgb'] = create_map(batch['rgb']).detach()  # TODO  !!!
-
         for sensor in rollouts.observations:
             rollouts.observations[sensor][0].copy_(batch[sensor])
 

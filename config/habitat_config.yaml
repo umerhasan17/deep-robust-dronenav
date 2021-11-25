@@ -1,4 +1,4 @@
-BASE_TASK_CONFIG_PATH: "config/habitat_pointnav_small_config.yaml"
+BASE_TASK_CONFIG_PATH: "config/habitat_pointnav_config.yaml"
 TRAINER_NAME: "ppo"
 ENV_NAME: "NavRLEnv"
 SIMULATOR_GPU_ID: 0

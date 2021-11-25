@@ -174,7 +174,7 @@ class HabitatSimMapSensor(Sensor):
             self.global_map = cv2.cv2.resize(self.global_map, (MAP_DIMENSIONS[1] * self.map_scale_factor, MAP_DIMENSIONS[2] * self.map_scale_factor))
             # Compute origin
             self.origin = np.array([pos[0], pos[1], alpha])
-            plt.imsave('debug/global_map' + '.jpeg', self.global_map)
+            #plt.imsave('debug/global_map' + '.jpeg', self.global_map)
 
         state = np.array([pos[0],pos[1],alpha])
 
@@ -195,7 +195,7 @@ class HabitatSimMapSensor(Sensor):
         output_map = nd.affine_transform(self.global_map,T)
 
         # raw_map = self.cone * raw_map
-        plt.imsave('debug/map'+str(self.image_number)+'.jpeg', output_map)
+        #plt.imsave('debug/map'+str(self.image_number)+'.jpeg', output_map)
 
         output_map = torch.unsqueeze(torch.from_numpy(output_map),0).to(torch.float32)
         confmap = torch.unsqueeze(torch.from_numpy(self.cone),0).to(torch.float32)

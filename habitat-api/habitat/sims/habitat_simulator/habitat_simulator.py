@@ -80,6 +80,7 @@ class HabitatSimRGBSensor(RGBSensor):
         self.sim_sensor_type = habitat_sim.SensorType.COLOR
         super().__init__(config=config)
         self.image_number = 0
+
     def _get_observation_space(self, *args: Any, **kwargs: Any):
         return spaces.Box(
             low=0,
@@ -107,9 +108,9 @@ class HabitatSimMapSensor(Sensor):
         Custom class to create a map sensor.
     """
 
-    def __init__(self,sim, dataset, task, config):
+    def __init__(self, sim, dataset, task, config):
         # self.sim_sensor_type = habitat_sim.SensorType.TENSOR ----> TENSOR DOESN'T EXIST IN 2019 TENSORFLOW :(
-        self.sim_sensor_type = habitat_sim.SensorType.COLOR
+        self.sim_sensor_type = SensorTypes.TENSOR
         super().__init__(config=config)
         self._sim = sim
         self._dataset = dataset
@@ -123,7 +124,7 @@ class HabitatSimMapSensor(Sensor):
 
     # Defines the type of the sensor
     def _get_sensor_type(self, *args: Any, **kwargs: Any) -> SensorTypes:
-        return SensorTypes.COLOR
+        return self.sim_sensor_type
 
     # Defines the size and range of the observations of the sensor
     def _get_observation_space(self, *args: Any, **kwargs: Any) -> Space:
@@ -164,11 +165,13 @@ class HabitatSimMapSensor(Sensor):
         plt.imsave('debug/map'+str(self.image_number)+'.jpeg', raw_map)
         
         output_map = torch.unsqueeze(torch.from_numpy(raw_map),0).to(torch.float32)
-        t_zeros = torch.zeros(1,MAP_DIMENSIONS[1], MAP_DIMENSIONS[2]).to(torch.float32)
         confmap = torch.unsqueeze(torch.from_numpy(self.cone),0).to(torch.float32)
-        output_map  = torch.cat((output_map,confmap,t_zeros), dim=0)
-        output_map  = output_map.permute(1, 2, 0)
-        
+        output_map = torch.cat((output_map,confmap), dim=0)
+        output_map = output_map.permute(1, 2, 0)
+
+        # Assert we have only map and confidence channels
+        assert output_map.shape[2] == MAP_DIMENSIONS[0]
+
         self.image_number = self.image_number + 1
         return output_map
 

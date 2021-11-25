@@ -11,6 +11,8 @@ import imageio
 import numpy as np
 import scipy.ndimage
 
+import quaternion as qt
+
 from habitat.core.simulator import Simulator
 from habitat.core.utils import try_cv2_import
 from habitat.utils.visualizations import utils
@@ -246,6 +248,30 @@ def _outline_border(top_down_map):
 
     top_down_map[:-1][up_down_block_nav] = MAP_BORDER_INDICATOR
     top_down_map[1:][up_down_nav_block] = MAP_BORDER_INDICATOR
+
+
+def quat_to_angle_axis(quat: qt.quaternion) -> Tuple[float, np.ndarray]:
+    r"""
+    Borrowed from https://github.com/facebookresearch/habitat-sim/blob/61b3e721ba08f3dbfdc1dd3d9926b446e6eb3734/habitat_sim/utils/common.py
+
+    Converts a quaternion to angle axis format
+    :param quat: The quaternion
+    :return:
+        -   `float` --- The angle to rotate about the axis by
+        -   `numpy.ndarray` --- The axis to rotate about. If :math:`\theta = 0`,
+            then this is harded coded to be the +x axis
+    """
+
+    rot_vec = qt.as_rotation_vector(quat)
+
+    theta = np.linalg.norm(rot_vec)
+    if np.abs(theta) < 1e-5:
+        w = np.array([1, 0, 0])
+        theta = 0.0
+    else:
+        w = rot_vec / theta
+
+    return (theta, w)
 
 
 def get_topdown_map_sensor(

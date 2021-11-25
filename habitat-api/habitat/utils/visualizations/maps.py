@@ -251,6 +251,7 @@ def _outline_border(top_down_map):
 def get_topdown_map(
     sim: Simulator,
     map_resolution: Tuple[int, int] = (1250, 1250),
+    map_limits: Tuple[int, int] = (None,None),
     num_samples: int = 20000,
     draw_border: bool = True,
 ) -> np.ndarray:
@@ -261,6 +262,7 @@ def get_topdown_map(
         sim: The simulator.
         map_resolution: The resolution of map which will be computed and
             returned.
+        map_limits: Real worls limits of where we want to render the map.
         num_samples: The number of random navigable points which will be
             initially
             sampled. For large environments it may need to be increased.

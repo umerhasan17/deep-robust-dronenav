@@ -374,6 +374,7 @@ class PPOTrainer(BaseRLTrainer):
                     dist_entropy,
                 ) = self._update_agent(ppo_cfg, rollouts)
                 pth_time += delta_pth_time
+                
 
                 for k, v in running_episode_stats.items():
                     window_episode_stats[k].append(v.clone())
@@ -408,6 +409,8 @@ class PPOTrainer(BaseRLTrainer):
                     {k: l for l, k in zip(losses, ["value", "policy"])},
                     count_steps,
                 )
+
+                # writer.add_image('MAP_SENSOR',rollouts.observations['MAP_SENSOR'][0])
 
                 # log stats
                 if update > 0 and update % self.config.LOG_INTERVAL == 0:
@@ -462,6 +465,9 @@ class PPOTrainer(BaseRLTrainer):
         Returns:
             None
         """
+        
+        # print("eval checkpoint")
+        
         # Map location CPU is almost always better than mapping to a CUDA device.
         ckpt_dict = self.load_checkpoint(checkpoint_path, map_location="cpu")
 

@@ -17,8 +17,10 @@ import numpy as np
 import scipy.ndimage as nd
 from matplotlib.transforms import Affine2D
 try:
+    import cupy
     import cupyx.scipy.ndimage as ndc
     CUPYAVAILABLE = True
+    print('Using cupyx')
 except ImportError:
     print("cuda not enabled for affine transforms")
     CUPYAVAILABLE = False
@@ -193,17 +195,16 @@ class HabitatSimMapSensor(Sensor):
         di = np.floor(displacement[0] * (MAP_DIMENSIONS[1]/MAP_SIZE[0]))
         dj = np.floor(displacement[1] * (MAP_DIMENSIONS[2]/MAP_SIZE[1]))
 
-        
-        
         width = self.global_map.shape[0]
         height = self.global_map.shape[1]
+
         T = (Affine2D().rotate_around(width//2,height//2,displacement[2]) + Affine2D().translate(tx = di, ty = dj)).get_matrix()
-        
+
         if CUPYAVAILABLE:
-            output_map = ndc.affine_transform(self.global_map,T)
+            output_map = cupy.asnumpy(ndc.affine_transform(cupy.asarray(self.global_map), cupy.asarray(T)))
         else:
             output_map = nd.affine_transform(self.global_map,T)
-        
+
         cy = height // 2
         cx = width // 2
         output_map =  output_map[cx-width//(2*self.map_scale_factor):cx+width//(2*self.map_scale_factor),\
@@ -221,6 +222,7 @@ class HabitatSimMapSensor(Sensor):
         assert output_map.shape[2] == MAP_DIMENSIONS[0]
 
         self.image_number = self.image_number + 1
+
         return output_map
 
 

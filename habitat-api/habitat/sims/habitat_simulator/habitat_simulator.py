@@ -71,6 +71,7 @@ def check_sim_obs(obs, sensor):
     )
 
 
+
 @registry.register_sensor
 class HabitatSimRGBSensor(RGBSensor):
     sim_sensor_type: habitat_sim.SensorType
@@ -78,7 +79,7 @@ class HabitatSimRGBSensor(RGBSensor):
     def __init__(self, config):
         self.sim_sensor_type = habitat_sim.SensorType.COLOR
         super().__init__(config=config)
-
+        self.image_number = 0
     def _get_observation_space(self, *args: Any, **kwargs: Any):
         return spaces.Box(
             low=0,
@@ -93,6 +94,9 @@ class HabitatSimRGBSensor(RGBSensor):
 
         # remove alpha channel
         obs = obs[:, :, :RGBSENSOR_DIMENSION]
+        plt.imsave('debug/rgb'+str(self.image_number)+'.jpeg', obs)
+        
+        self.image_number = self.image_number + 1
         return obs
 
 
@@ -110,6 +114,7 @@ class HabitatSimMapSensor(Sensor):
         self._sim = sim
         self._dataset = dataset
         self._task = task
+        self.image_number = 0
         
     # Defines the name of the sensor in the sensor suite dictionary
     def _get_uuid(self, *args: Any, **kwargs: Any) -> str:
@@ -143,12 +148,14 @@ class HabitatSimMapSensor(Sensor):
         raw_map = nd.affine_transform(raw_map,T)
         
         
-        plt.imsave('debug/map'+str(int(self._sim.get_world_time()*50))+'.jpeg', raw_map)
+        plt.imsave('debug/map'+str(self.image_number)+'.jpeg', raw_map)
         
         output_map = torch.unsqueeze(torch.from_numpy(raw_map),0).to(torch.float32)
         t_zeros = torch.zeros(2,MAP_DIMENSIONS[1], MAP_DIMENSIONS[1]).to(torch.float32)
         output_map  = torch.cat((output_map,t_zeros), dim=0)
         output_map  = output_map.permute(1, 2, 0)
+        
+        self.image_number = self.image_number + 1
         return output_map
 
 

@@ -15,6 +15,15 @@ import habitat_sim
 
 import numpy as np
 import scipy.ndimage as nd
+from matplotlib.transforms import Affine2D
+try:
+    import cupy
+    import cupyx.scipy.ndimage as ndc
+    CUPYAVAILABLE = True
+    print('Using cupyx')
+except ImportError:
+    print("cuda not enabled for affine transforms")
+    CUPYAVAILABLE = False
 
 import habitat
 from config.config import MAP_DIMENSIONS, MAP_SIZE, MAP_DOWNSAMPLE
@@ -118,7 +127,7 @@ class HabitatSimMapSensor(Sensor):
         self._sim = sim
         self.image_number = 0
         self.cone = self.vis_cone((MAP_DIMENSIONS[1], MAP_DIMENSIONS[2]), np.pi/1.1)
-        self.map_scale_factor = 3
+        self.map_scale_factor = 4
         self.map_upsample_factor = 2
         self.global_map = None
         self.origin = None
@@ -156,6 +165,15 @@ class HabitatSimMapSensor(Sensor):
                     cone[ii,jj] = 0
 
         return cone
+    
+    def compute_global_map(self):
+        self.global_map = maps.get_topdown_map_sensor( # this is kinda not great, ideally we should only compute a map on reset and just reuse the same map file every step (differently translated)
+                sim=self._sim,
+                map_resolution=(MAP_DIMENSIONS[1] * self.map_scale_factor // self.map_upsample_factor, MAP_DIMENSIONS[2] * self.map_scale_factor // self.map_upsample_factor),
+                map_size=(MAP_SIZE[0]* self.map_scale_factor, MAP_SIZE[1]* self.map_scale_factor),
+            )
+        self.global_map = cv2.cv2.resize(self.global_map, (MAP_DIMENSIONS[1] * self.map_scale_factor, MAP_DIMENSIONS[2] * self.map_scale_factor))
+        # Compute origin
 
     # This is called whenever reset is called or an action is taken
     def get_observation(self, _) -> Any:
@@ -166,15 +184,9 @@ class HabitatSimMapSensor(Sensor):
         alpha = -quat_to_angle_axis(sim_quat)[0] + np.pi/2
 
         if self.global_map is None:
-            self.global_map = maps.get_topdown_map_sensor( # this is kinda not great, ideally we should only compute a map on reset and just reuse the same map file every step (differently translated)
-                sim=self._sim,
-                map_resolution=(MAP_DIMENSIONS[1] * self.map_scale_factor // self.map_upsample_factor, MAP_DIMENSIONS[2] * self.map_scale_factor // self.map_upsample_factor),
-                map_size=(MAP_SIZE[0]* self.map_scale_factor, MAP_SIZE[1]* self.map_scale_factor),
-            )
-            self.global_map = cv2.cv2.resize(self.global_map, (MAP_DIMENSIONS[1] * self.map_scale_factor, MAP_DIMENSIONS[2] * self.map_scale_factor))
-            # Compute origin
+            self.compute_global_map()
             self.origin = np.array([pos[0], pos[1], alpha])
-            #plt.imsave('debug/global_map' + '.jpeg', self.global_map)
+            # plt.imsave('debug/global_map' + '.jpeg', self.global_map)
 
         state = np.array([pos[0],pos[1],alpha])
 
@@ -183,19 +195,23 @@ class HabitatSimMapSensor(Sensor):
         di = np.floor(displacement[0] * (MAP_DIMENSIONS[1]/MAP_SIZE[0]))
         dj = np.floor(displacement[1] * (MAP_DIMENSIONS[2]/MAP_SIZE[1]))
 
-        scale = np.diag([1/self.map_scale_factor,1/self.map_scale_factor,1])
-        translation = np.array([[1, 0, di],
-                                 [0, 1, dj],
-                                 [0, 0, 1]])
+        width = self.global_map.shape[0]
+        height = self.global_map.shape[1]
 
-        rotation = np.array([[np.cos(displacement[2]), np.sin(displacement[2]), 0],
-                               [ - np.sin(displacement[2]), np.cos(displacement[2]), 0],
-                               [   0                      , 0                      , 1,]])
-        T = translation * scale * rotation
-        output_map = nd.affine_transform(self.global_map,T)
+        T = (Affine2D().rotate_around(width//2,height//2,displacement[2]) + Affine2D().translate(tx = di, ty = dj)).get_matrix()
 
-        # raw_map = self.cone * raw_map
-        #plt.imsave('debug/map'+str(self.image_number)+'.jpeg', output_map)
+        if CUPYAVAILABLE:
+            output_map = cupy.asnumpy(ndc.affine_transform(cupy.asarray(self.global_map), cupy.asarray(T)))
+        else:
+            output_map = nd.affine_transform(self.global_map,T)
+
+        cy = height // 2
+        cx = width // 2
+        output_map =  output_map[cx-width//(2*self.map_scale_factor):cx+width//(2*self.map_scale_factor),\
+                                cy-width//(2*self.map_scale_factor):cy+height//(2*self.map_scale_factor)]
+
+        output_map = self.cone * output_map
+        # plt.imsave('debug/map'+str(self.image_number)+'.jpeg', output_map)
 
         output_map = torch.unsqueeze(torch.from_numpy(output_map),0).to(torch.float32)
         confmap = torch.unsqueeze(torch.from_numpy(self.cone),0).to(torch.float32)
@@ -206,6 +222,7 @@ class HabitatSimMapSensor(Sensor):
         assert output_map.shape[2] == MAP_DIMENSIONS[0]
 
         self.image_number = self.image_number + 1
+
         return output_map
 
 

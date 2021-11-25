@@ -115,6 +115,7 @@ class HabitatSimMapSensor(Sensor):
         self._dataset = dataset
         self._task = task
         self.image_number = 0
+        self.cone = self.vis_cone((MAP_DIMENSIONS[1], MAP_DIMENSIONS[2]), np.pi/1.1)
         
     # Defines the name of the sensor in the sensor suite dictionary
     def _get_uuid(self, *args: Any, **kwargs: Any) -> str:
@@ -133,6 +134,22 @@ class HabitatSimMapSensor(Sensor):
             dtype=np.uint8,
         )
         
+    def vis_cone(self, map_size, fov):
+        cone = np.zeros(map_size)
+        
+        ci = np.floor(map_size[0]/2)
+        cj = np.floor(map_size[1]/2)
+        for ii in range(map_size[0]):
+            for jj in range(map_size[1]):
+                di = ii - ci
+                dj = jj - cj
+                angle = np.arctan2(dj, -di)
+                if((- fov/2)<angle<fov/2):
+                    cone[ii,jj] = 1
+                else:
+                    cone[ii,jj] = 0
+                    
+        return cone
 
     # This is called whenever reset is called or an action is taken
     def get_observation(self, observations, *args: Any, episode, **kwargs: Any) -> Any:
@@ -143,16 +160,13 @@ class HabitatSimMapSensor(Sensor):
             map_resolution = (MAP_DIMENSIONS[1], MAP_DIMENSIONS[2]),
             map_size = (MAP_SIZE[0], MAP_SIZE[1]),
         )
-        pos = self._sim.get_agent_state().position
-        T = np.eye(3)
-        raw_map = nd.affine_transform(raw_map,T)
-        
-        
+        raw_map = self.cone * raw_map
         plt.imsave('debug/map'+str(self.image_number)+'.jpeg', raw_map)
         
         output_map = torch.unsqueeze(torch.from_numpy(raw_map),0).to(torch.float32)
-        t_zeros = torch.zeros(2,MAP_DIMENSIONS[1], MAP_DIMENSIONS[1]).to(torch.float32)
-        output_map  = torch.cat((output_map,t_zeros), dim=0)
+        t_zeros = torch.zeros(1,MAP_DIMENSIONS[1], MAP_DIMENSIONS[2]).to(torch.float32)
+        confmap = torch.unsqueeze(torch.from_numpy(self.cone),0).to(torch.float32)
+        output_map  = torch.cat((output_map,confmap,t_zeros), dim=0)
         output_map  = output_map.permute(1, 2, 0)
         
         self.image_number = self.image_number + 1

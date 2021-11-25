@@ -40,6 +40,8 @@ from habitat.utils.visualizations import fog_of_war, maps
 
 import matplotlib.pyplot as plt
 
+from habitat.utils.visualizations.maps import quat_to_angle_axis
+
 RGBSENSOR_DIMENSION = 3
 
 
@@ -97,7 +99,7 @@ class HabitatSimRGBSensor(RGBSensor):
         # remove alpha channel
         obs = obs[:, :, :RGBSENSOR_DIMENSION]
         # plt.imsave('debug/rgb'+str(self.image_number)+'.jpeg', obs)
-        
+
         self.image_number = self.image_number + 1
         return obs
 
@@ -116,20 +118,11 @@ class HabitatSimMapSensor(Sensor):
         self._sim = sim
         self.image_number = 0
         self.cone = self.vis_cone((MAP_DIMENSIONS[1], MAP_DIMENSIONS[2]), np.pi/1.1)
-        
-        self.scale_factor = 8    
-        
-        self.global_map = maps.get_topdown_map_sensor( # this is kinda not great, ideally we should only compute a map on reset and just reuse the same map file every step (differently translated)
-            sim = self._sim,
-            map_resolution = (MAP_DIMENSIONS[1] * self.scale_factor, MAP_DIMENSIONS[2] * self.scale_factor),
-            map_size = (MAP_SIZE[0]* self.scale_factor, MAP_SIZE[1]* self.scale_factor),
-        )
-        
-        pos = (sim.get_agent_state().position[0],sim.get_agent_state().position[2])
-        sim_quat = sim.get_agent_state().rotation
-        alpha = -quat_to_angle_axis(sim_quat)[0] + np.pi/2
-        self.origin = np.array([pos[0],pos[1],alpha])
-        
+        self.map_scale_factor = 3
+        self.map_upsample_factor = 2
+        self.global_map = None
+        self.origin = None
+
     # Defines the name of the sensor in the sensor suite dictionary
     def _get_uuid(self, *args: Any, **kwargs: Any) -> str:
         return 'map'
@@ -146,10 +139,10 @@ class HabitatSimMapSensor(Sensor):
             shape=(MAP_DIMENSIONS[1], MAP_DIMENSIONS[2], MAP_DIMENSIONS[0]),
             dtype=np.uint8,
         )
-        
+
     def vis_cone(self, map_size, fov):
         cone = np.zeros(map_size)
-        
+
         ci = np.floor(map_size[0]/2)
         cj = np.floor(map_size[1]/2)
         for ii in range(map_size[0]):
@@ -161,38 +154,50 @@ class HabitatSimMapSensor(Sensor):
                     cone[ii,jj] = 1
                 else:
                     cone[ii,jj] = 0
-                    
+
         return cone
 
     # This is called whenever reset is called or an action is taken
     def get_observation(self, _) -> Any:
         # print("pos = " + str(self._sim.get_agent_state().position))
-        
-        pos = (sim.get_agent_state().position[0],sim.get_agent_state().position[2])
-        sim_quat = sim.get_agent_state().rotation
+
+        pos = (self._sim.get_agent_state().position[0],self._sim.get_agent_state().position[2])
+        sim_quat = self._sim.get_agent_state().rotation
         alpha = -quat_to_angle_axis(sim_quat)[0] + np.pi/2
+
+        if self.global_map is None:
+            self.global_map = maps.get_topdown_map_sensor( # this is kinda not great, ideally we should only compute a map on reset and just reuse the same map file every step (differently translated)
+                sim=self._sim,
+                map_resolution=(MAP_DIMENSIONS[1] * self.map_scale_factor // self.map_upsample_factor, MAP_DIMENSIONS[2] * self.map_scale_factor // self.map_upsample_factor),
+                map_size=(MAP_SIZE[0]* self.map_scale_factor, MAP_SIZE[1]* self.map_scale_factor),
+            )
+            self.global_map = cv2.cv2.resize(self.global_map, (MAP_DIMENSIONS[1] * self.map_scale_factor, MAP_DIMENSIONS[2] * self.map_scale_factor))
+            # Compute origin
+            self.origin = np.array([pos[0], pos[1], alpha])
+            plt.imsave('debug/global_map' + '.jpeg', self.global_map)
+
         state = np.array([pos[0],pos[1],alpha])
-        
+
         displacement = state - self.origin
-        
-        di = np.floor(displacement[0] * (map_resolution[0]/map_size[0]))
-        dj = np.floor(displacement[1] * (map_resolution[1]/map_size[1]))
-        
-        scale = np.diag([self.scale_factor,self.scale_factor,1])
-        translation = np.array( [1, 0, di],\
-                                [0, 1, dj],\
-                                [0, 0, 1])
-        
-        rotation =   np.array( [np.cos(displacement[2]), np.sin(displacement[2]), 0],\
-                            [ - np.sin(displacement[2]), np.cos(displacement[2]), 0],\
-                            [   0                      , 0                      , 1,])
-        T = translation * scale * rotation        
+
+        di = np.floor(displacement[0] * (MAP_DIMENSIONS[1]/MAP_SIZE[0]))
+        dj = np.floor(displacement[1] * (MAP_DIMENSIONS[2]/MAP_SIZE[1]))
+
+        scale = np.diag([1/self.map_scale_factor,1/self.map_scale_factor,1])
+        translation = np.array([[1, 0, di],
+                                 [0, 1, dj],
+                                 [0, 0, 1]])
+
+        rotation = np.array([[np.cos(displacement[2]), np.sin(displacement[2]), 0],
+                               [ - np.sin(displacement[2]), np.cos(displacement[2]), 0],
+                               [   0                      , 0                      , 1,]])
+        T = translation * scale * rotation
         output_map = nd.affine_transform(self.global_map,T)
 
         # raw_map = self.cone * raw_map
-        # plt.imsave('debug/map'+str(self.image_number)+'.jpeg', raw_map)
-        
-        output_map = torch.unsqueeze(torch.from_numpy(raw_map),0).to(torch.float32)
+        plt.imsave('debug/map'+str(self.image_number)+'.jpeg', output_map)
+
+        output_map = torch.unsqueeze(torch.from_numpy(output_map),0).to(torch.float32)
         confmap = torch.unsqueeze(torch.from_numpy(self.cone),0).to(torch.float32)
         output_map = torch.cat((output_map,confmap), dim=0)
         output_map = output_map.permute(1, 2, 0)

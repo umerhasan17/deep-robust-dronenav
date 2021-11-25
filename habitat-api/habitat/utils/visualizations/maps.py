@@ -298,7 +298,7 @@ def get_topdown_map_sensor(
     alpha = -quat_to_angle_axis(sim_quat)[0] + np.pi/2
 
     # Search over grid for valid points.
-    for ii in range(0, map_resolution[0] // 2):
+    for ii in range(map_resolution[0]):  # 0, map_resolution[0] // 2  (half compute)
         for jj in range(map_resolution[1]):
             dx = (map_size[0]/map_resolution[0])*(ii-np.floor(map_resolution[0]/2))
             dy = (map_size[1]/map_resolution[1])*(jj-np.floor(map_resolution[1]/2))

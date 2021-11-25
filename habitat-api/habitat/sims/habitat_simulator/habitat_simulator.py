@@ -3,6 +3,7 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
+from os import stat
 import cv2.cv2
 import torch
 from typing import Any, List, Optional, Union
@@ -116,6 +117,19 @@ class HabitatSimMapSensor(Sensor):
         self.image_number = 0
         self.cone = self.vis_cone((MAP_DIMENSIONS[1], MAP_DIMENSIONS[2]), np.pi/1.1)
         
+        self.scale_factor = 8    
+        
+        self.global_map = maps.get_topdown_map_sensor( # this is kinda not great, ideally we should only compute a map on reset and just reuse the same map file every step (differently translated)
+            sim = self._sim,
+            map_resolution = (MAP_DIMENSIONS[1] * self.scale_factor, MAP_DIMENSIONS[2] * self.scale_factor),
+            map_size = (MAP_SIZE[0]* self.scale_factor, MAP_SIZE[1]* self.scale_factor),
+        )
+        
+        pos = (sim.get_agent_state().position[0],sim.get_agent_state().position[2])
+        sim_quat = sim.get_agent_state().rotation
+        alpha = -quat_to_angle_axis(sim_quat)[0] + np.pi/2
+        self.origin = np.array([pos[0],pos[1],alpha])
+        
     # Defines the name of the sensor in the sensor suite dictionary
     def _get_uuid(self, *args: Any, **kwargs: Any) -> str:
         return 'map'
@@ -154,16 +168,29 @@ class HabitatSimMapSensor(Sensor):
     def get_observation(self, _) -> Any:
         # print("pos = " + str(self._sim.get_agent_state().position))
         
-        raw_map =  maps.get_topdown_map_sensor( # this is kinda not great, ideally we should only compute a map on reset and just reuse the same map file every step (differently translated)
-            sim = self._sim,
-            map_resolution = (MAP_DIMENSIONS[1] // MAP_DOWNSAMPLE, MAP_DIMENSIONS[2] // MAP_DOWNSAMPLE),
-            map_size = (MAP_SIZE[0], MAP_SIZE[1]),
-        )
+        pos = (sim.get_agent_state().position[0],sim.get_agent_state().position[2])
+        sim_quat = sim.get_agent_state().rotation
+        alpha = -quat_to_angle_axis(sim_quat)[0] + np.pi/2
+        state = np.array([pos[0],pos[1],alpha])
+        
+        displacement = state - self.origin
+        
+        di = np.floor(displacement[0] * (map_resolution[0]/map_size[0]))
+        dj = np.floor(displacement[1] * (map_resolution[1]/map_size[1]))
+        
+        scale = np.diag([self.scale_factor,self.scale_factor,1])
+        translation = np.array( [1, 0, di],\
+                                [0, 1, dj],\
+                                [0, 0, 1])
+        
+        rotation =   np.array( [np.cos(displacement[2]), np.sin(displacement[2]), 0],\
+                            [ - np.sin(displacement[2]), np.cos(displacement[2]), 0],\
+                            [   0                      , 0                      , 1,])
+        T = translation * scale * rotation        
+        output_map = nd.affine_transform(self.global_map,T)
 
-        raw_map = cv2.cv2.resize(raw_map, dsize=(MAP_DIMENSIONS[1], MAP_DIMENSIONS[2]), interpolation=cv2.cv2.INTER_LINEAR)
-
-        raw_map = self.cone * raw_map
-        plt.imsave('debug/map'+str(self.image_number)+'.jpeg', raw_map)
+        # raw_map = self.cone * raw_map
+        # plt.imsave('debug/map'+str(self.image_number)+'.jpeg', raw_map)
         
         output_map = torch.unsqueeze(torch.from_numpy(raw_map),0).to(torch.float32)
         confmap = torch.unsqueeze(torch.from_numpy(self.cone),0).to(torch.float32)

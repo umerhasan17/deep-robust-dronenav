@@ -34,9 +34,9 @@ def egomotion_transform(input_map_tensor, dX):
     y = dX[1]
     t = dX[2]
 
-    scale = 2/MAP_SIZE # scale according to the map size parameter
+    scale = (map_resolution[0]/map_size[0],map_resolution[1]/map_size[1]) # scale according to the map size parameter
 
-    affine_transform_vector = -np.array([x*scale,y*scale,t]) # compute map coorrection
+    affine_transform_vector = -np.array([x*scale[0],y*scale[1],t]) # compute map coorrection
 
     return tensor_transform(input_map_tensor,affine_transform_vector) # call affine transform function
 

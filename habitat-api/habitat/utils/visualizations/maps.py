@@ -279,8 +279,15 @@ def get_topdown_map_sensor(
     map_resolution: Tuple[int, int] = (256, 256),
     map_size: Tuple[int, int] = (5, 5),
 ) -> np.ndarray:
-    r"""
-        Custom function which returns a top down map used in custom map sensor.
+    """Generates a map centered, and rotated around the agent, used to build a topdown map sensor
+
+    Args:
+        sim (Simulator): sim object
+        map_resolution (Tuple[int, int], optional): Resolution of the topdown map in pixels. Defaults to (256, 256).
+        map_size (Tuple[int, int], optional): Size of the map (in world coodinates [m]). Defaults to (5, 5).
+
+    Returns:
+        np.ndarray: the topdown map
     """
     top_down_map = np.zeros(map_resolution, dtype=np.uint8)
     border_padding = 3

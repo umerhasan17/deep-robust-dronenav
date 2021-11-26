@@ -1,4 +1,4 @@
-BASE_TASK_CONFIG_PATH: "config/habitat_pointnav_small_config.yaml"
+BASE_TASK_CONFIG_PATH: "config/habitat_pointnav_config.yaml"
 TRAINER_NAME: "ppo"
 ENV_NAME: "NavRLEnv"
 SIMULATOR_GPU_ID: 0
@@ -10,7 +10,7 @@ VIDEO_DIR: "video_dir"
 TEST_EPISODE_COUNT: 2
 EVAL_CKPT_PATH_DIR: "data/new_checkpoints"
 NUM_PROCESSES: 1
-SENSORS: ["MAP_SENSOR"]
+SENSORS: ["RGB_SENSOR", "MAP_SENSOR"]
 CHECKPOINT_FOLDER: "data/new_checkpoints"
 NUM_UPDATES: 10000
 LOG_INTERVAL: 1

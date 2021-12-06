@@ -197,14 +197,14 @@ class HabitatSimMapSensor(Sensor):
 
         displacement = self.origin - state
 
-        dj = -np.floor(displacement[0] * (MAP_DIMENSIONS[1]/MAP_SIZE[0]))
-        di = -np.floor(displacement[1] * (MAP_DIMENSIONS[2]/MAP_SIZE[1]))
+        dj = np.floor(displacement[0] * (MAP_DIMENSIONS[1]/MAP_SIZE[0]))
+        di = np.floor(displacement[1] * (MAP_DIMENSIONS[2]/MAP_SIZE[1]))
 
         width = self.global_map.shape[0]
         height = self.global_map.shape[1]
-        T = (Affine2D().rotate_around(width//2,height//2,-displacement[2]) + Affine2D().translate(tx = di, ty = dj)).get_matrix()
+        T = (Affine2D().rotate_around(width//2,height//2,displacement[2]) + Affine2D().translate(tx = di, ty = dj)).get_matrix()
         
-        # global_map_copy = np.copy(self.global_map) [maybe insert this back]
+        global_map_copy = np.copy(self.global_map) #[maybe insert this back]
         
         if CUPYAVAILABLE:
             output_map = cupy.asnumpy(ndc.affine_transform(cupy.asarray(global_map_copy), cupy.asarray(T)))

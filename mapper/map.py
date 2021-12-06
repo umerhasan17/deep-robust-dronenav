@@ -5,18 +5,6 @@ PACKAGE_PARENT = '../'
 SCRIPT_DIR = dirname(realpath(join(getcwd(), expanduser(__file__))))
 sys.path.append(normpath(join(SCRIPT_DIR, PACKAGE_PARENT)))
 
-
-
-
-
-
-
-
-
-
-
-
-
 from mapper.mid_level.encoder import mid_level_representations  # mid_level wrapper class
 from mapper.mid_level.decoder import UpResNet  # upsampling resnet
 from mapper.transform import egomotion_transform  # upsampling resnet
@@ -29,18 +17,6 @@ from config.config import REPRESENTATION_NAMES, BATCHSIZE, device, RESIDUAL_LAYE
     RESIDUAL_SIZE, IMG_DIMENSIONS
 import torch.nn as nn
 import torch.nn.functional as F
-
-
-
-
-
-
-
-
-
-
-
-
 
 class FC_UpResNet(nn.Module):
     def __init__(self):

@@ -84,6 +84,10 @@ class Sensor:
         """
         raise NotImplementedError
 
+    @property
+    def current_scene_name(self):
+        return self._sim._current_scene.split('/')[-1].split('.')[0]
+
 
 class Observations(dict):
     r"""Dictionary containing sensor observations

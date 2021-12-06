@@ -9,7 +9,7 @@ import time
 from collections import defaultdict, deque
 from typing import Any, Dict, List, Optional
 
-from config.config import BASELINE_POLICY, PURE_MIDLEVELREP_POLICY, DRRN_POLICY, POLICY
+from config.config import CURRENT_POLICY
 
 import numpy as np
 import torch
@@ -29,8 +29,8 @@ from habitat_baselines.common.utils import (
     generate_video,
     linear_decay,
 )
-from habitat_baselines.rl.ppo import PPO, PointNavBaselinePolicy
-from policies.midlevel_map import PointNavDRRNPolicy
+from habitat_baselines.rl.ppo import PPO
+from policies.get_policy import get_current_policy_object
 
 from habitat.utils import profiling_utils
 from mapper.map import create_map
@@ -64,18 +64,13 @@ class PPOTrainer(BaseRLTrainer):
         """
         logger.add_filehandler(self.config.LOG_FILE)
 
-        if POLICY == BASELINE_POLICY:
-            self.actor_critic = PointNavBaselinePolicy(
-                observation_space=self.envs.observation_spaces[0],
-                action_space=self.envs.action_spaces[0],
-                hidden_size=ppo_cfg.hidden_size,
-            )
-        elif POLICY==DRRN_POLICY:
-            self.actor_critic = PointNavDRRNPolicy(
-                observation_space=self.envs.observation_spaces[0],
-                action_space=self.envs.action_spaces[0],
-                hidden_size=ppo_cfg.hidden_size,
-            )
+        current_policy = get_current_policy_object(CURRENT_POLICY)
+
+        self.actor_critic = current_policy(
+            observation_space=self.envs.observation_spaces[0],
+            action_space=self.envs.action_spaces[0],
+            hidden_size=ppo_cfg.hidden_size,
+        )
         self.actor_critic.to(self.device)
 
         self.agent = PPO(

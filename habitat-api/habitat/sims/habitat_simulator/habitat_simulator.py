@@ -197,26 +197,26 @@ class HabitatSimMapSensor(Sensor):
 
         displacement = self.origin - state
 
-        dj = np.floor(displacement[0] * (MAP_DIMENSIONS[1]/MAP_SIZE[0]))
-        di = np.floor(displacement[1] * (MAP_DIMENSIONS[2]/MAP_SIZE[1]))
+        di = np.floor(displacement[0] * (MAP_DIMENSIONS[1]/MAP_SIZE[0]))
+        dj = np.floor(displacement[1] * (MAP_DIMENSIONS[2]/MAP_SIZE[1]))
 
         width = self.global_map.shape[0]
         height = self.global_map.shape[1]
-        T = (Affine2D().rotate_around(width//2,height//2,displacement[2]) + Affine2D().translate(tx = di, ty = dj)).get_matrix()
+        # T = (Affine2D().rotate_around(width//2,height//2,displacement[2]) + Affine2D().translate(tx = di, ty = dj)).get_matrix()
 
         global_map_copy = np.copy(self.global_map) #[maybe insert this back]
         
-        if CUPYAVAILABLE:
-            output_map = cupy.asnumpy(ndc.affine_transform(cupy.asarray(global_map_copy), cupy.asarray(T)))
-        else:
-            output_map = nd.affine_transform(global_map_copy,T)
+        # if CUPYAVAILABLE:
+        #     output_map = cupy.asnumpy(ndc.affine_transform(cupy.asarray(global_map_copy), cupy.asarray(T)))
+        # else:
+        #     output_map = nd.affine_transform(global_map_copy,T)
 
         cy = height // 2
         cx = width // 2
-        output_map =  output_map[cx-width//(2*self.map_scale_factor):cx+width//(2*self.map_scale_factor),\
-                                cy-width//(2*self.map_scale_factor):cy+height//(2*self.map_scale_factor)]
 
-        output_map = self.cone * output_map
+        output_map = cv2.merge((global_map_copy*128,global_map_copy*128,global_map_copy*128))
+        output_map = cv2.circle(output_map, (int(di+cx),int(dj+cy)), 3, (255,0,0), 2)
+        # output_map = self.cone * output_map
 
         if self.image_number % DATASET_SAVE_PERIOD == 0:
             self.displacements.append(np.concatenate((np.array([self.image_number]), displacement, np.array([di, dj]))))
@@ -224,6 +224,9 @@ class HabitatSimMapSensor(Sensor):
                 with open('data/displacements.npy', 'wb') as f:
                     np.save(f, np.array(self.displacements))
             plt.imsave(os.path.join(DATASET_SAVE_FOLDER, 'maps', f'map{str((self.image_number // DATASET_SAVE_PERIOD) + START_IMAGE_NUMBER)}.jpeg'), output_map)
+
+        output_map =  global_map_copy[cx-width//(2*self.map_scale_factor):cx+width//(2*self.map_scale_factor),\
+                                cy-width//(2*self.map_scale_factor):cy+height//(2*self.map_scale_factor)]
 
         output_map = torch.unsqueeze(torch.from_numpy(output_map),0).to(torch.float32)
         confmap = torch.unsqueeze(torch.from_numpy(self.cone),0).to(torch.float32)

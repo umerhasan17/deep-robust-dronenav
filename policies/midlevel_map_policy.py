@@ -209,8 +209,13 @@ class PointNavDRRNNet(Net):
                                          16)  # after fully connected layer, # (BATCHSIZE x REPRESENTATION_NUMBER*2 x 16 x 16) tensor
             # ==========Deconv==========
             print("Passing residual decoder...")
-            map_update = self.upresnet(activation)  # upsample to map object
+            activation = self.upresnet(activation)  # upsample to map object
             observations["rgb"] = torch.swapaxes(map_update, 1, 3)
+            
+            
+            
+            
+            activation = transform.egomotion_transform(activation, dX)
 
             
             

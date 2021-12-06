@@ -74,5 +74,6 @@ def run_exp(exp_config: str, run_type: str, opts=None) -> None:
 if __name__ == "__main__":
     os.makedirs(os.path.join(DATASET_SAVE_FOLDER, 'images'), exist_ok=True)
     os.makedirs(os.path.join(DATASET_SAVE_FOLDER, 'maps'), exist_ok=True)
+    os.makedirs(os.path.join(DATASET_SAVE_FOLDER, 'circle_maps'), exist_ok=True)
     main()
 

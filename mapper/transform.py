@@ -1,5 +1,5 @@
 """ 
-networks/transform.py
+mapper/transform.py
 ----------------------------------------------------------------------------
      Authors : Yongtao Wu, Umer Hasan Sayed, Titouan Renard
      Last Update : Octobre 2021

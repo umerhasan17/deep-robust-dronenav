@@ -29,3 +29,7 @@ MAP_SIZE = (5,5)  # map size (in [m]), given a 256x256 map, picking map size = 5
 # TODO add data path for use in habitat_config
 
 HABITAT_CONFIGS_PATH = 'configs/'
+
+BASELINE_POLICY = 0
+PURE_MIDLEVELREP_POLICY = 1
+DRRN_POLICY = 2

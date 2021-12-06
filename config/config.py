@@ -2,13 +2,21 @@ import torch
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 # DEVICE = 'cpu'
+CURRENT_POLICY = 'Baseline'
+# CURRENT_POLICY = 'BaselineMidlevel'
+# CURRENT_POLICY = 'DRDN'
+
+
 
 REPRESENTATION_NAMES = ['keypoints3d', 'depth_euclidean']
 
 FC_NEURON_LISTS = [8 * len(REPRESENTATION_NAMES) * 16 * 16, 1024, 1024, 8 * len(REPRESENTATION_NAMES) * 16 * 16]
 RESIDUAL_LAYERS_PER_BLOCK = [2, 2, 2, 2]
 RESIDUAL_SIZE = [32, 64, 128, 256]
-RESIDUAL_NEURON_CHANNEL = [16, 8, 4, 2, 3]  # TODO change 3 back to 2 (2 images should be map and confidence)
+if CURRENT_POLICY == 'DRDN':
+    RESIDUAL_NEURON_CHANNEL = [16, 8, 4, 2, 2]
+else:
+    RESIDUAL_NEURON_CHANNEL = [16, 8, 4, 2, 3]
 STRIDES = [1, 1, 1]
 IMG_DIMENSIONS = (3, 256, 256)  # mid level reps are in colour right now
 MAP_DIMENSIONS = (2, 256, 256)
@@ -27,6 +35,3 @@ MAP_SIZE = (5, 5)  # map size (in [m]), given a 256x256 map, picking map size = 
 
 HABITAT_CONFIGS_PATH = 'configs/'
 
-CURRENT_POLICY = 'Baseline'
-# CURRENT_POLICY = 'BaselineMidlevel'
-# CURRENT_POLICY = 'DRDN'

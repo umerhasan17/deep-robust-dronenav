@@ -105,7 +105,7 @@ class HabitatSimRGBSensor(RGBSensor):
 
         # remove alpha channel
         obs = obs[:, :, :RGBSENSOR_DIMENSION]
-        # plt.imsave('debug/rgb'+str(self.image_number)+'.jpeg', obs)
+        plt.imsave('debug/rgb'+str(self.image_number)+'.jpeg', obs)
 
         self.image_number = self.image_number + 1
         return obs
@@ -184,20 +184,20 @@ class HabitatSimMapSensor(Sensor):
         if self.global_map is None:
             self.compute_global_map()
             self.origin = np.array([pos[0], pos[1], alpha])
-            # plt.imsave('debug/global_map' + '.jpeg', self.global_map)
+            plt.imsave('debug/global_map' + '.jpeg', self.global_map)
 
         state = np.array([pos[0],pos[1],alpha])
 
         displacement = state - self.origin
 
-        di = np.floor(displacement[0] * (MAP_DIMENSIONS[1]/MAP_SIZE[0]))
-        dj = np.floor(displacement[1] * (MAP_DIMENSIONS[2]/MAP_SIZE[1]))
+        dj = -np.floor(displacement[0] * (MAP_DIMENSIONS[1]/MAP_SIZE[0]))
+        di = -np.floor(displacement[1] * (MAP_DIMENSIONS[2]/MAP_SIZE[1]))
 
         
         
         width = self.global_map.shape[0]
         height = self.global_map.shape[1]
-        T = (Affine2D().rotate_around(width//2,height//2,displacement[2]) + Affine2D().translate(tx = di, ty = dj)).get_matrix()
+        T = (Affine2D().rotate_around(width//2,height//2,-displacement[2]) + Affine2D().translate(tx = di, ty = dj)).get_matrix()
         
         if CUPYAVAILABLE:
             output_map = ndc.affine_transform(self.global_map,T)
@@ -210,7 +210,7 @@ class HabitatSimMapSensor(Sensor):
                                 cy-width//(2*self.map_scale_factor):cy+height//(2*self.map_scale_factor)]
 
         output_map = self.cone * output_map
-        # plt.imsave('debug/map'+str(self.image_number)+'.jpeg', output_map)
+        plt.imsave('debug/map'+str(self.image_number)+'.jpeg', output_map)
 
         output_map = torch.unsqueeze(torch.from_numpy(output_map),0).to(torch.float32)
         confmap = torch.unsqueeze(torch.from_numpy(self.cone),0).to(torch.float32)

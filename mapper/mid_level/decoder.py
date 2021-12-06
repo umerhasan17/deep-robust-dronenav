@@ -162,7 +162,6 @@ class UpSampleBlock(nn.Module):
         self.conv1 = nn.Conv2d(inplanes, planes, kernel_size=3, stride=stride, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(planes)
         self.relu = nn.ReLU(inplace=True)
-        self.tanh = nn.Tanh()
 
 
         self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=1, padding=1, bias=False)
@@ -183,8 +182,7 @@ class UpSampleBlock(nn.Module):
         out = self.bn2(out)
 
         out += identity
-        out = self.tanh(out)# TODO # TODO # TODO # TODO# TODO# TODO# TODO# TODO# TODO# TODO# TODO# TODO# TODO# TODO# TODO# TODO# TODO
-
+        out = self.relu(out)
         return out
 
 

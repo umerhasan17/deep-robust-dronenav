@@ -22,7 +22,8 @@ import torch
 import numpy as np
 from scipy.spatial.transform import Rotation as R
 import torch.nn.functional as F
-from config.config import device, MAP_SIZE, RESIDUAL_SIZE, BATCHSIZE
+from matplotlib.transforms import Affine2D
+from config.config import device, MAP_SIZE, MAP_DIMENSIONS, RESIDUAL_SIZE, BATCHSIZE
 
 """
 :param input_image_tensor:  (batch_size, 3, 256, 256)
@@ -30,13 +31,11 @@ from config.config import device, MAP_SIZE, RESIDUAL_SIZE, BATCHSIZE
 :return: concatted image tensor to pass into FCN  (batch_size, 8*len(representation_names), 16, 16)
 """
 def egomotion_transform(input_map_tensor, dX): 
-    x = dX[0]
-    y = dX[1]
+    x = dX[0] * (MAP_DIMENSIONS[1]/MAP_SIZE[0])
+    y = dX[1] * (MAP_DIMENSIONS[2]/MAP_SIZE[1])
     t = dX[2]
 
-    scale = (map_resolution[0]/map_size[0],map_resolution[1]/map_size[1]) # scale according to the map size parameter
-
-    affine_transform_vector = -np.array([x*scale[0],y*scale[1],t]) # compute map coorrection
+    affine_transform_vector = -np.array([x,y,t]) # compute map coorrection
 
     return tensor_transform(input_map_tensor,affine_transform_vector) # call affine transform function
 
@@ -48,9 +47,7 @@ def egomotion_transform(input_map_tensor, dX):
 def tensor_transform(input_map_tensor, transform): 
 
     # Construct a 2d rotation and transformation matrix (using scipy functions)
-    r = np.array([R.from_euler('z',transform[2]).as_matrix()[0:2,0:2]])            # (2x2) rotation matrix for "angle" radiants, stored in a (1x2x2 tensor)
-    x = np.array([[[transform[0]],[transform[1]]]])                                # (2x1) translation tensor, stored in a (1x2x1) tensor…
-    T = torch.tensor(np.concatenate([r,x],axis=2), dtype=torch.float32)
+    T = torch.tensor((Affine2D().rotate_around(width//2,height//2,transform[2]) + Affine2D().translate(tx = transform[0], ty = transform[1])).get_matrix())
     # unsqueezed_tensor = torch.unsqueeze(input_map_tensor,0)                        # (CxHxW) map tensor expanded to a (1xCxHxW) tensor
 
     # Compute grid transform tensor

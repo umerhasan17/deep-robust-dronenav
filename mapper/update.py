@@ -1,43 +1,47 @@
 """ 
 networks/update.py
 ----------------------------------------------------------------------------
-     Authors : Yongtao Wu, Umer Hasan Sayed, Titouan Renard
+     Authors : Yongtao Wu, Umer Hasan, Titouan Renard
      Last Update : Octobre 2021
 
      applies the update function to the computed map
 
 ----------------------------------------------------------------------------
-Processing graph:
+"""
 
-      map_update (BATCHSIZE x 2 x 256 x 256)
-          |
-          v
-    -------------
-    |  combine  |   <----------- previous_map_transformed (BATCHSIZE x 2 x 256 x 256)
-    -------------
-          |
-          v
-    updated map (BATCHSIZE x 2 x 256 x 256)
-  """
-
-import pdb
-# from torchvision import datasets, transforms
 import torch
-import numpy as np
-from scipy.spatial.transform import Rotation as R
-import torch.nn.functional as F
-from config.config import device, MAP_SIZE, RESIDUAL_SIZE
 
-"""
-:param input_image_tensor:  (batch_size, 3, 256, 256)
-:param representation_names: list
-:return: concatted image tensor to pass into FCN  (batch_size, 8*len(representation_names), 16, 16)
-"""
+from config.config import BATCHSIZE, MAP_DIMENSIONS
 
 
-def update_map(map_update, previous_map_transformed):
-    prev_confmap = previous_map_transformed[:, 0, :, :]
-    update_confmap = map_update[:, 0, :, :]
-    total_conf = torch.add(prev_confmap, update_confmap)
+def update_map(update_matrix, previous_map):
+    """
+    This is the U function defined in our proposal
+    :param update_matrix: (batch_size, 2, map_width, map_height)
+    :param previous_map: (batch_size, 2, map_width, map_height)
+    :return: updated_map: (batch_size, 2, map_width, map_height)
+    """
 
-    return map_update
+    batch_map_dim = (BATCHSIZE, *MAP_DIMENSIONS)
+
+    assert update_matrix.shape == previous_map.shape == batch_map_dim
+
+    updated_map = torch.ones(batch_map_dim)
+
+    for i in range(BATCHSIZE):
+        updated_confidence = (update_matrix[i, 1, :, :] + previous_map[i, 1, :, :])
+        updated_free_space_map = (update_matrix[i, 0, :, :] * update_matrix[i, 1, :, :] + previous_map[i, 0, :, :] * previous_map[i, 1, :, :]) / updated_confidence
+        updated_confidence = torch.unsqueeze(updated_confidence, dim=0)
+        updated_free_space_map = torch.unsqueeze(updated_free_space_map, dim=0)
+        updated_map[i, :, :, :] = torch.cat([updated_free_space_map, updated_confidence], dim=0)
+
+    return updated_map
+
+
+if __name__ == '__main__':
+    a = torch.ones(4, 1, 256, 256) * 2
+    b = torch.ones(4, 1, 256, 256) * 3
+    c = torch.ones(4, 1, 256, 256) * 4
+    d = torch.ones(4, 1, 256, 256) * 5
+
+    update_map(torch.cat([a, b], dim=1), torch.cat([c, d], dim=1))

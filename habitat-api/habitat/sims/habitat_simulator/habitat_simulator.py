@@ -89,7 +89,8 @@ def check_sim_obs(obs, sensor):
 class HabitatSimRGBSensor(RGBSensor):
     sim_sensor_type: habitat_sim.SensorType
 
-    def __init__(self, config):
+    def __init__(self, sim, config):
+        self._sim = sim
         self.sim_sensor_type = habitat_sim.SensorType.COLOR
         super().__init__(config=config)
         self.image_number = 0
@@ -111,7 +112,7 @@ class HabitatSimRGBSensor(RGBSensor):
 
         if self.image_number % DATASET_SAVE_PERIOD == 0:
             print('Saving RGB image: ', self.image_number)
-            plt.imsave(os.path.join(DATASET_SAVE_FOLDER, 'images', f'rgb{str((self.image_number // DATASET_SAVE_PERIOD) + START_IMAGE_NUMBER)}.jpeg'), obs)
+            plt.imsave(os.path.join(DATASET_SAVE_FOLDER, 'images', f'rgb_{self.current_scene_name}_{str((self.image_number // DATASET_SAVE_PERIOD) + START_IMAGE_NUMBER)}.jpeg'), obs)
 
         self.image_number = self.image_number + 1
         return obs
@@ -220,10 +221,10 @@ class HabitatSimMapSensor(Sensor):
 
         if self.image_number % DATASET_SAVE_PERIOD == 0:
             self.displacements.append(np.concatenate((np.array([self.image_number]), displacement, np.array([di, dj]))))
-            if self.image_number == 300:
-                with open('data/displacements.npy', 'wb') as f:
+            if self.image_number == 1200:
+                with open('data/nuevo_displacements.npy', 'wb') as f:
                     np.save(f, np.array(self.displacements))
-            plt.imsave(os.path.join(DATASET_SAVE_FOLDER, 'maps', f'map{str((self.image_number // DATASET_SAVE_PERIOD) + START_IMAGE_NUMBER)}.jpeg'), output_map)
+            plt.imsave(os.path.join(DATASET_SAVE_FOLDER, 'maps', f'map_{self.current_scene_name}_{str((self.image_number // DATASET_SAVE_PERIOD) + START_IMAGE_NUMBER)}.jpeg'), output_map)
 
         output_map = torch.unsqueeze(torch.from_numpy(output_map),0).to(torch.float32)
         confmap = torch.unsqueeze(torch.from_numpy(self.cone),0).to(torch.float32)
@@ -236,78 +237,6 @@ class HabitatSimMapSensor(Sensor):
         self.image_number = self.image_number + 1
 
         return output_map
-
-
-@registry.register_sensor
-class HabitatSimDepthSensor(DepthSensor):
-    sim_sensor_type: habitat_sim.SensorType
-    min_depth_value: float
-    max_depth_value: float
-
-    def __init__(self, config):
-        self.sim_sensor_type = habitat_sim.SensorType.DEPTH
-
-        if config.NORMALIZE_DEPTH:
-            self.min_depth_value = 0
-            self.max_depth_value = 1
-        else:
-            self.min_depth_value = config.MIN_DEPTH
-            self.max_depth_value = config.MAX_DEPTH
-
-        super().__init__(config=config)
-
-    def _get_observation_space(self, *args: Any, **kwargs: Any):
-        return spaces.Box(
-            low=self.min_depth_value,
-            high=self.max_depth_value,
-            shape=(self.config.HEIGHT, self.config.WIDTH, 1),
-            dtype=np.float32,
-        )
-
-    def get_observation(self, sim_obs):
-        obs = sim_obs.get(self.uuid, None)
-        check_sim_obs(obs, self)
-
-        if isinstance(obs, np.ndarray):
-            obs = np.clip(obs, self.config.MIN_DEPTH, self.config.MAX_DEPTH)
-
-            obs = np.expand_dims(
-                obs, axis=2
-            )  # make depth observation a 3D array
-        else:
-            obs = obs.clamp(self.config.MIN_DEPTH, self.config.MAX_DEPTH)
-
-            obs = obs.unsqueeze(-1)
-
-        if self.config.NORMALIZE_DEPTH:
-            # normalize depth observation to [0, 1]
-            obs = (obs - self.config.MIN_DEPTH) / (
-                self.config.MAX_DEPTH - self.config.MIN_DEPTH
-            )
-
-        return obs
-
-
-@registry.register_sensor
-class HabitatSimSemanticSensor(SemanticSensor):
-    sim_sensor_type: habitat_sim.SensorType
-
-    def __init__(self, config):
-        self.sim_sensor_type = habitat_sim.SensorType.SEMANTIC
-        super().__init__(config=config)
-
-    def _get_observation_space(self, *args: Any, **kwargs: Any):
-        return spaces.Box(
-            low=np.iinfo(np.uint32).min,
-            high=np.iinfo(np.uint32).max,
-            shape=(self.config.HEIGHT, self.config.WIDTH),
-            dtype=np.uint32,
-        )
-
-    def get_observation(self, sim_obs):
-        obs = sim_obs.get(self.uuid, None)
-        check_sim_obs(obs, self)
-        return obs
 
 
 @registry.register_simulator(name="Sim-v0")
@@ -333,10 +262,7 @@ class HabitatSim(habitat_sim.Simulator, Simulator):
                 sensor_cfg.TYPE
             )
 
-            if sensor_cfg.TYPE == 'MAP_SENSOR':
-                sim_sensors.append(sensor_type(self, sensor_cfg))
-            else:
-                sim_sensors.append(sensor_type(sensor_cfg))
+            sim_sensors.append(sensor_type(self, sensor_cfg)) # we add the simulator object when initialising the sensors
 
         self._sensor_suite = SensorSuite(sim_sensors)
         self.sim_config = self.create_sim_config(self._sensor_suite)

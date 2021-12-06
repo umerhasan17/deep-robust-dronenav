@@ -94,6 +94,7 @@ class HabitatSimRGBSensor(RGBSensor):
         self.sim_sensor_type = habitat_sim.SensorType.COLOR
         super().__init__(config=config)
         self.image_number = 0
+        self.prev_pose = None
 
     def _get_observation_space(self, *args: Any, **kwargs: Any):
         return spaces.Box(
@@ -116,6 +117,55 @@ class HabitatSimRGBSensor(RGBSensor):
 
         self.image_number = self.image_number + 1
         return obs
+
+
+@registry.register_sensor(name="EGOMOTION")
+class AgentPositionSensor(Sensor):
+    def __init__(self, sim, config):
+        # self.sim_sensor_type = habitat_sim.SensorType.TENSOR ----> TENSOR DOESN'T EXIST IN 2019 TENSORFLOW :(
+        self.sim_sensor_type = habitat_sim.SensorType.NONE
+        super().__init__(config=config)
+        self._sim = sim
+        self.prev_pose = None
+
+    # Defines the name of the sensor in the sensor suite dictionary
+    def _get_uuid(self, *args, **kwargs):
+        return "egomotion"
+
+    # Defines the type of the sensor
+    def _get_sensor_type(self, *args, **kwargs):
+        return self.sim_sensor_type
+
+    # Defines the size and range of the observations of the sensor
+    def _get_observation_space(self, *args, **kwargs):
+        return spaces.Box(
+            low=np.finfo(np.float32).min,
+            high=np.finfo(np.float32).max,
+            shape=(3,),
+            dtype=np.float32,
+        )
+
+    # This is called whenver reset is called or an action is taken
+    def get_observation(self, observations, *args, episode, **kwargs):
+
+
+        pos = (self._sim.get_agent_state().position[0],self._sim.get_agent_state().position[2])
+        sim_quat = self._sim.get_agent_state().rotation
+        alpha = -quat_to_angle_axis(sim_quat)[0] + np.pi/2
+        
+        state = np.array([pos[0],pos[1],alpha])
+
+        if self.prev_pose is None:
+            self.prev_pose = state
+            return torch.zeros((1,3,1))
+        
+        world_displacement = state - self.prev_pose # displacement in the world frame
+        world_to_robot_transformation_matrix = Affine2D().rotate_around(0, 0, np.pi/2-self.prev_pose[2]).get_matrix()  # negative rotation to compensate for positive rotation
+        robot_displacement = world_to_robot_transformation_matrix @ world_displacement
+        
+        self.prev_pose = state
+        
+        return torch.unsqueeze(torch.Tensor(robot_displacement))
 
 
 @registry.register_sensor(name='MAP_SENSOR')

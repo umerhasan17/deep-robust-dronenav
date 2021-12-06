@@ -196,7 +196,7 @@ class HabitatSimMapSensor(Sensor):
 
         state = np.array([pos[0],pos[1],alpha])
 
-        world_displacement = state - self.origin # displacement in the world frame
+        world_displacement = state - self.origin  # displacement in the world frame
 
         world_to_map_transformation_matrix = Affine2D().rotate_around(0, 0, np.pi/2-self.origin[2]).get_matrix()  # negative rotation to compensate for positive rotation
         map_displacement = world_to_map_transformation_matrix @ world_displacement
@@ -206,21 +206,22 @@ class HabitatSimMapSensor(Sensor):
 
         width = self.global_map.shape[0]
         height = self.global_map.shape[1]
-        T = (Affine2D().rotate_around(width//2,height//2,map_displacement[2]) + Affine2D().translate(tx = di, ty = dj)).get_matrix()
+        T = (Affine2D().rotate_around(width//2,height//2,map_displacement[2]) + Affine2D().translate(tx=dj, ty=di)).get_matrix()
 
-        global_map_copy = np.copy(self.global_map) #[maybe insert this back]
+        global_map_copy = np.copy(self.global_map)
         
-        # if CUPYAVAILABLE:
-        #     output_map = cupy.asnumpy(ndc.affine_transform(cupy.asarray(global_map_copy), cupy.asarray(T)))
-        # else:
-        #     output_map = nd.affine_transform(global_map_copy,T)
+        if CUPYAVAILABLE:
+            output_map = cupy.asnumpy(ndc.affine_transform(cupy.asarray(global_map_copy), cupy.asarray(T)))
+        else:
+            output_map = nd.affine_transform(global_map_copy,T)
 
         cy = height // 2
         cx = width // 2
 
-        output_map = cv2.merge((global_map_copy*128,global_map_copy*128,global_map_copy*128))
-        output_map = cv2.circle(output_map, (int(di+cx),int(dj+cy)), 3, (255,0,0), 2)
-        # output_map = self.cone * output_map
+        output_map = output_map[cx-width//(2*self.map_scale_factor):cx+width//(2*self.map_scale_factor),\
+                                cy-width//(2*self.map_scale_factor):cy+height//(2*self.map_scale_factor)]
+
+        output_map = self.cone * output_map
 
         if self.image_number % DATASET_SAVE_PERIOD == 0:
             self.displacements.append(np.concatenate((np.array([self.image_number]), map_displacement, np.array([di, dj]))))
@@ -228,9 +229,6 @@ class HabitatSimMapSensor(Sensor):
                 with open('data/nuevo_displacements.npy', 'wb') as f:
                     np.save(f, np.array(self.displacements))
             plt.imsave(os.path.join(DATASET_SAVE_FOLDER, 'maps', f'map_{self.current_scene_name}_{str((self.image_number // DATASET_SAVE_PERIOD) + START_IMAGE_NUMBER)}.jpeg'), output_map)
-
-        output_map = global_map_copy[cx-width//(2*self.map_scale_factor):cx+width//(2*self.map_scale_factor),\
-                                cy-width//(2*self.map_scale_factor):cy+height//(2*self.map_scale_factor)]
 
         output_map = torch.unsqueeze(torch.from_numpy(output_map),0).to(torch.float32)
         confmap = torch.unsqueeze(torch.from_numpy(self.cone),0).to(torch.float32)

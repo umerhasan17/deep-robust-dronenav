@@ -191,7 +191,29 @@ class PointNavDRRNNet(Net):
         x = [target_encoding]
 
         if not self.is_blind:
-            perception_embed = self.visual_encoder(observations)
+            
+            # #changed add
+            image = observations["rgb"]
+            image = torch.swapaxes(image, 1, 3)
+            activation = image
+            # ==========Mid level encoder==========
+            print("Passing mid level encoder...")
+            activation = mid_level_representations(activation,
+                                                   REPRESENTATION_NAMES)  #  (BATCHSIZE x REPRESENTATION_NUMBER*2 x 16 x 16) tensor
+            # ==========FC==========
+            print("Passing fully connected layer...")
+            activation = activation.view(activation.shape[0], 1, -1)  # flatten all dimensions except batch,
+            # --> tensor of the form (BATCHSIZE x 2048*REPRESENTATION_NUMBER)
+            activation = self.fc(activation)  # pass through dense layer --> (BATCHSIZE x 2048*REPRESENTATION_NUMBER) tensor
+            activation = activation.view(activation.shape[0], 8 * len(REPRESENTATION_NAMES), 16,
+                                         16)  # after fully connected layer, # (BATCHSIZE x REPRESENTATION_NUMBER*2 x 16 x 16) tensor
+            # ==========Deconv==========
+            print("Passing residual decoder...")
+            map_update = self.upresnet(activation)  # upsample to map object
+            observations["rgb"] = torch.swapaxes(map_update, 1, 3)
+
+            
+            
             x = [perception_embed] + x
 
         x = torch.cat(x, dim=1)

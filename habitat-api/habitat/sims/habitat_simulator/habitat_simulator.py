@@ -111,7 +111,7 @@ class HabitatSimRGBSensor(RGBSensor):
 
         if self.image_number % DATASET_SAVE_PERIOD == 0:
             print('Saving RGB image: ', self.image_number)
-            plt.imsave(os.path.join(DATASET_SAVE_FOLDER, f'rgb{str((self.image_number // DATASET_SAVE_PERIOD) + START_IMAGE_NUMBER)}.jpeg'), obs)
+            plt.imsave(os.path.join(DATASET_SAVE_FOLDER, 'images', f'rgb{str((self.image_number // DATASET_SAVE_PERIOD) + START_IMAGE_NUMBER)}.jpeg'), obs)
 
         self.image_number = self.image_number + 1
         return obs
@@ -203,7 +203,7 @@ class HabitatSimMapSensor(Sensor):
         width = self.global_map.shape[0]
         height = self.global_map.shape[1]
         T = (Affine2D().rotate_around(width//2,height//2,displacement[2]) + Affine2D().translate(tx = di, ty = dj)).get_matrix()
-        
+
         global_map_copy = np.copy(self.global_map) #[maybe insert this back]
         
         if CUPYAVAILABLE:
@@ -223,7 +223,7 @@ class HabitatSimMapSensor(Sensor):
             if self.image_number == 300:
                 with open('data/displacements.npy', 'wb') as f:
                     np.save(f, np.array(self.displacements))
-            plt.imsave(os.path.join(DATASET_SAVE_FOLDER, f'map{str((self.image_number // DATASET_SAVE_PERIOD) + START_IMAGE_NUMBER)}.jpeg'), output_map)
+            plt.imsave(os.path.join(DATASET_SAVE_FOLDER, 'maps', f'map{str((self.image_number // DATASET_SAVE_PERIOD) + START_IMAGE_NUMBER)}.jpeg'), output_map)
 
         output_map = torch.unsqueeze(torch.from_numpy(output_map),0).to(torch.float32)
         confmap = torch.unsqueeze(torch.from_numpy(self.cone),0).to(torch.float32)

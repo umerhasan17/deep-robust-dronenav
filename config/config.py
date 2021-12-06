@@ -19,10 +19,10 @@ BATCHSIZE = 4
 
 """ Config to create image map dataset for supervised training of mapper architecture + RL architecture. """
 DATASET_SAVE_PERIOD = 1
-DATASET_SAVE_FOLDER = 'data/image_map_dataset/'
+DATASET_SAVE_FOLDER = 'data/image_map_dataset2/'
 START_IMAGE_NUMBER = 0
 
-MAP_SIZE = (5,5) # map size (in [m]), given a 256x256 map, picking map size = 5 gives a resolution of ~2cm
+MAP_SIZE = (5,5)  # map size (in [m]), given a 256x256 map, picking map size = 5 gives a resolution of ~2cm
 
 
 # TODO add habitat_config yaml path

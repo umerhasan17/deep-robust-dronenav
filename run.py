@@ -3,6 +3,7 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
+import os
 
 import habitat
 
@@ -12,6 +13,7 @@ import random
 import numpy as np
 import torch
 
+from config.config import DATASET_SAVE_FOLDER
 from habitat_baselines.common.baseline_registry import baseline_registry
 from habitat_baselines.config.default import get_config
 
@@ -70,5 +72,7 @@ def run_exp(exp_config: str, run_type: str, opts=None) -> None:
 
 
 if __name__ == "__main__":
+    os.makedirs(os.path.join(DATASET_SAVE_FOLDER, 'images'), exist_ok=True)
+    os.makedirs(os.path.join(DATASET_SAVE_FOLDER, 'maps'), exist_ok=True)
     main()
 

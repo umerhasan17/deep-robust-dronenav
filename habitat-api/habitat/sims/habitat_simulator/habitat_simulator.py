@@ -196,14 +196,17 @@ class HabitatSimMapSensor(Sensor):
 
         state = np.array([pos[0],pos[1],alpha])
 
-        displacement = self.origin - state
+        world_displacement = state - self.origin # displacement in the world frame
 
-        di = np.floor(displacement[0] * (MAP_DIMENSIONS[1]/MAP_SIZE[0]))
-        dj = np.floor(displacement[1] * (MAP_DIMENSIONS[2]/MAP_SIZE[1]))
+        world_to_map_transformation_matrix = Affine2D().rotate_around(0, 0, np.pi/2-self.origin[2]).get_matrix()  # negative rotation to compensate for positive rotation
+        map_displacement = world_to_map_transformation_matrix @ world_displacement
+
+        di = np.floor(map_displacement[0] * (MAP_DIMENSIONS[1]/MAP_SIZE[0]))
+        dj = np.floor(map_displacement[1] * (MAP_DIMENSIONS[2]/MAP_SIZE[1]))
 
         width = self.global_map.shape[0]
         height = self.global_map.shape[1]
-        # T = (Affine2D().rotate_around(width//2,height//2,displacement[2]) + Affine2D().translate(tx = di, ty = dj)).get_matrix()
+        T = (Affine2D().rotate_around(width//2,height//2,map_displacement[2]) + Affine2D().translate(tx = di, ty = dj)).get_matrix()
 
         global_map_copy = np.copy(self.global_map) #[maybe insert this back]
         
@@ -220,13 +223,13 @@ class HabitatSimMapSensor(Sensor):
         # output_map = self.cone * output_map
 
         if self.image_number % DATASET_SAVE_PERIOD == 0:
-            self.displacements.append(np.concatenate((np.array([self.image_number]), displacement, np.array([di, dj]))))
+            self.displacements.append(np.concatenate((np.array([self.image_number]), map_displacement, np.array([di, dj]))))
             if self.image_number == 1200:
                 with open('data/nuevo_displacements.npy', 'wb') as f:
                     np.save(f, np.array(self.displacements))
             plt.imsave(os.path.join(DATASET_SAVE_FOLDER, 'maps', f'map_{self.current_scene_name}_{str((self.image_number // DATASET_SAVE_PERIOD) + START_IMAGE_NUMBER)}.jpeg'), output_map)
 
-        output_map =  global_map_copy[cx-width//(2*self.map_scale_factor):cx+width//(2*self.map_scale_factor),\
+        output_map = global_map_copy[cx-width//(2*self.map_scale_factor):cx+width//(2*self.map_scale_factor),\
                                 cy-width//(2*self.map_scale_factor):cy+height//(2*self.map_scale_factor)]
 
         output_map = torch.unsqueeze(torch.from_numpy(output_map),0).to(torch.float32)

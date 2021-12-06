@@ -3,6 +3,7 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
+import os.path
 from os import stat
 import cv2.cv2
 import torch
@@ -17,14 +18,16 @@ import numpy as np
 import scipy.ndimage as nd
 from matplotlib.transforms import Affine2D
 try:
+    import cupy
     import cupyx.scipy.ndimage as ndc
     CUPYAVAILABLE = True
+    print('Using cupyx')
 except ImportError:
     print("cuda not enabled for affine transforms")
     CUPYAVAILABLE = False
 
 import habitat
-from config.config import MAP_DIMENSIONS, MAP_SIZE, MAP_DOWNSAMPLE
+from config.config import MAP_DIMENSIONS, MAP_SIZE, MAP_DOWNSAMPLE, DATASET_SAVE_PERIOD, DATASET_SAVE_FOLDER, START_IMAGE_NUMBER
 from habitat.core.dataset import Episode
 from habitat.core.logging import logger
 from habitat.core.registry import registry
@@ -105,7 +108,10 @@ class HabitatSimRGBSensor(RGBSensor):
 
         # remove alpha channel
         obs = obs[:, :, :RGBSENSOR_DIMENSION]
-        plt.imsave('debug/rgb'+str(self.image_number)+'.jpeg', obs)
+
+        if self.image_number % DATASET_SAVE_PERIOD == 0:
+            print('Saving RGB image: ', self.image_number)
+            plt.imsave(os.path.join(DATASET_SAVE_FOLDER, f'rgb{str((self.image_number // DATASET_SAVE_PERIOD) + START_IMAGE_NUMBER)}.jpeg'), obs)
 
         self.image_number = self.image_number + 1
         return obs
@@ -129,6 +135,7 @@ class HabitatSimMapSensor(Sensor):
         self.map_upsample_factor = 2
         self.global_map = None
         self.origin = None
+        self.displacements = []
 
     # Defines the name of the sensor in the sensor suite dictionary
     def _get_uuid(self, *args: Any, **kwargs: Any) -> str:
@@ -163,7 +170,7 @@ class HabitatSimMapSensor(Sensor):
                     cone[ii,jj] = 0
 
         return cone
-    
+
     def compute_global_map(self):
         self.global_map = maps.get_topdown_map_sensor( # this is kinda not great, ideally we should only compute a map on reset and just reuse the same map file every step (differently translated)
                 sim=self._sim,
@@ -188,29 +195,35 @@ class HabitatSimMapSensor(Sensor):
 
         state = np.array([pos[0],pos[1],alpha])
 
-        displacement = state - self.origin
+        displacement = self.origin - state
 
         dj = -np.floor(displacement[0] * (MAP_DIMENSIONS[1]/MAP_SIZE[0]))
         di = -np.floor(displacement[1] * (MAP_DIMENSIONS[2]/MAP_SIZE[1]))
 
-        
-        
         width = self.global_map.shape[0]
         height = self.global_map.shape[1]
         T = (Affine2D().rotate_around(width//2,height//2,-displacement[2]) + Affine2D().translate(tx = di, ty = dj)).get_matrix()
         
-        if CUPYAVAILABLE:
-            output_map = ndc.affine_transform(self.global_map,T)
-        else:
-            output_map = nd.affine_transform(self.global_map,T)
+        # global_map_copy = np.copy(self.global_map) [maybe insert this back]
         
+        if CUPYAVAILABLE:
+            output_map = cupy.asnumpy(ndc.affine_transform(cupy.asarray(global_map_copy), cupy.asarray(T)))
+        else:
+            output_map = nd.affine_transform(global_map_copy,T)
+
         cy = height // 2
         cx = width // 2
         output_map =  output_map[cx-width//(2*self.map_scale_factor):cx+width//(2*self.map_scale_factor),\
                                 cy-width//(2*self.map_scale_factor):cy+height//(2*self.map_scale_factor)]
 
         output_map = self.cone * output_map
-        plt.imsave('debug/map'+str(self.image_number)+'.jpeg', output_map)
+
+        if self.image_number % DATASET_SAVE_PERIOD == 0:
+            self.displacements.append(np.concatenate((np.array([self.image_number]), displacement, np.array([di, dj]))))
+            if self.image_number == 300:
+                with open('data/displacements.npy', 'wb') as f:
+                    np.save(f, np.array(self.displacements))
+            plt.imsave(os.path.join(DATASET_SAVE_FOLDER, f'map{str((self.image_number // DATASET_SAVE_PERIOD) + START_IMAGE_NUMBER)}.jpeg'), output_map)
 
         output_map = torch.unsqueeze(torch.from_numpy(output_map),0).to(torch.float32)
         confmap = torch.unsqueeze(torch.from_numpy(self.cone),0).to(torch.float32)
@@ -221,6 +234,7 @@ class HabitatSimMapSensor(Sensor):
         assert output_map.shape[2] == MAP_DIMENSIONS[0]
 
         self.image_number = self.image_number + 1
+
         return output_map
 
 

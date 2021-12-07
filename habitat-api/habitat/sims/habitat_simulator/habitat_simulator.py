@@ -112,7 +112,7 @@ class HabitatSimRGBSensor(RGBSensor):
         obs = obs[:, :, :RGBSENSOR_DIMENSION]
 
         if self.image_number % DATASET_SAVE_PERIOD == 0:
-            print('Saving RGB image: ', self.image_number)
+            # print('Saving RGB image: ', self.image_number)
             plt.imsave(os.path.join(DATASET_SAVE_FOLDER, 'images', f'rgb_{self.current_scene_name}_{str((self.image_number // DATASET_SAVE_PERIOD) + START_IMAGE_NUMBER)}.jpeg'), obs)
 
         self.image_number = self.image_number + 1
@@ -122,7 +122,6 @@ class HabitatSimRGBSensor(RGBSensor):
 @registry.register_sensor(name="EGOMOTION")
 class AgentPositionSensor(Sensor):
     def __init__(self, sim, config):
-        # self.sim_sensor_type = habitat_sim.SensorType.TENSOR ----> TENSOR DOESN'T EXIST IN 2019 TENSORFLOW :(
         self.sim_sensor_type = habitat_sim.SensorType.NONE
         super().__init__(config=config)
         self._sim = sim
@@ -141,12 +140,12 @@ class AgentPositionSensor(Sensor):
         return spaces.Box(
             low=np.finfo(np.float32).min,
             high=np.finfo(np.float32).max,
-            shape=(3,),
+            shape=(1,1,3),
             dtype=np.float32,
         )
 
     # This is called whenver reset is called or an action is taken
-    def get_observation(self, observations, *args, episode, **kwargs):
+    def get_observation(self, _) -> Any:
 
 
         pos = (self._sim.get_agent_state().position[0],self._sim.get_agent_state().position[2])
@@ -157,15 +156,13 @@ class AgentPositionSensor(Sensor):
 
         if self.prev_pose is None:
             self.prev_pose = state
-            return torch.zeros((1,3,1))
+            return np.zeros((1,1,3))
         
         world_displacement = state - self.prev_pose # displacement in the world frame
         world_to_robot_transformation_matrix = Affine2D().rotate_around(0, 0, np.pi/2-self.prev_pose[2]).get_matrix()  # negative rotation to compensate for positive rotation
-        robot_displacement = world_to_robot_transformation_matrix @ world_displacement
-        
+        robot_displacement = torch.unsqueeze(torch.Tensor(world_to_robot_transformation_matrix @ world_displacement),0)
         self.prev_pose = state
-        
-        return torch.unsqueeze(torch.Tensor(robot_displacement))
+        return robot_displacement
 
 
 @registry.register_sensor(name='MAP_SENSOR')
@@ -233,7 +230,6 @@ class HabitatSimMapSensor(Sensor):
 
     # This is called whenever reset is called or an action is taken
     def get_observation(self, _) -> Any:
-        # print("pos = " + str(self._sim.get_agent_state().position))
 
         pos = (self._sim.get_agent_state().position[0],self._sim.get_agent_state().position[2])
         sim_quat = self._sim.get_agent_state().rotation

@@ -24,6 +24,8 @@ from habitat_baselines.common.utils import CategoricalNet, Flatten
 from habitat_baselines.rl.models.rnn_state_encoder import RNNStateEncoder
 from habitat_baselines.rl.models.simple_cnn import SimpleCNN
 
+from mapper.transform import egomotion_transform
+from mapper.update import map_update, update_map
 
 class Policy(nn.Module):
     def __init__(self, net, dim_actions):
@@ -194,6 +196,7 @@ class PointNavDRRNNet(Net):
             
             # #changed add
             image = observations["rgb"]
+            dX = observations["egomotion"]
             image = torch.swapaxes(image, 1, 3)
             activation = image
             # ==========Mid level encoder==========
@@ -210,14 +213,13 @@ class PointNavDRRNNet(Net):
             # ==========Deconv==========
             print("Passing residual decoder...")
             activation = self.upresnet(activation)  # upsample to map object
-            observations["rgb"] = torch.swapaxes(map_update, 1, 3)
+            # observations["rgb"] = torch.swapaxes(map_update, 1, 3)            
+            # TODO get the map update from the previous frame
+            map_update = egomotion_transform(map_update, dX)
+            activation = update_map(activation, map_update)
+            print("Passing map transform...")
             
-            
-            
-            
-            activation = transform.egomotion_transform(activation, dX)
-
-            
+            perception_embed = self.visual_encoder(activation) ## encode back to policy
             
             x = [perception_embed] + x
 

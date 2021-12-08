@@ -111,9 +111,9 @@ class HabitatSimRGBSensor(RGBSensor):
         # remove alpha channel
         obs = obs[:, :, :RGBSENSOR_DIMENSION]
 
-        if self.image_number % DATASET_SAVE_PERIOD == 0:
+        # if self.image_number % DATASET_SAVE_PERIOD == 0:
             # print('Saving RGB image: ', self.image_number)
-            plt.imsave(os.path.join(DATASET_SAVE_FOLDER, 'images', f'rgb_{self.current_scene_name}_{str((self.image_number // DATASET_SAVE_PERIOD) + START_IMAGE_NUMBER)}.jpeg'), obs)
+            # plt.imsave(os.path.join(DATASET_SAVE_FOLDER, 'images', f'rgb_{self.current_scene_name}_{str((self.image_number // DATASET_SAVE_PERIOD) + START_IMAGE_NUMBER)}.jpeg'), obs)
 
         self.image_number = self.image_number + 1
         return obs
@@ -270,15 +270,15 @@ class HabitatSimMapSensor(Sensor):
         output_map = output_map[cx-width//(2*self.map_scale_factor):cx+width//(2*self.map_scale_factor),\
                                 cy-width//(2*self.map_scale_factor):cy+height//(2*self.map_scale_factor)]
 
-        # output_map = self.cone * output_map
+        output_map = self.cone * output_map
 
         if self.image_number % DATASET_SAVE_PERIOD == 0:
             self.displacements.append(np.concatenate((np.array([self.image_number]), map_displacement, np.array([di, dj]))))
             if self.image_number == 1200:
                 with open('data/nuevo_displacements.npy', 'wb') as f:
                     np.save(f, np.array(self.displacements))
-            plt.imsave(os.path.join(DATASET_SAVE_FOLDER, 'maps', f'map_{self.current_scene_name}_{str((self.image_number // DATASET_SAVE_PERIOD) + START_IMAGE_NUMBER)}.jpeg'), output_map)
-            plt.imsave(os.path.join(DATASET_SAVE_FOLDER, 'circle_maps', f'circle_map_{self.current_scene_name}_{str((self.image_number // DATASET_SAVE_PERIOD) + START_IMAGE_NUMBER)}.jpeg'), circle_map)
+            # plt.imsave(os.path.join(DATASET_SAVE_FOLDER, 'maps', f'map_{self.current_scene_name}_{str((self.image_number // DATASET_SAVE_PERIOD) + START_IMAGE_NUMBER)}.jpeg'), output_map)
+            # plt.imsave(os.path.join(DATASET_SAVE_FOLDER, 'circle_maps', f'circle_map_{self.current_scene_name}_{str((self.image_number // DATASET_SAVE_PERIOD) + START_IMAGE_NUMBER)}.jpeg'), circle_map)
 
         output_map = torch.unsqueeze(torch.from_numpy(output_map),0).to(torch.float32)
         confmap = torch.unsqueeze(torch.from_numpy(self.cone),0).to(torch.float32)

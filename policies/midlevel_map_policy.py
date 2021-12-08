@@ -26,6 +26,8 @@ from habitat_baselines.rl.models.simple_cnn import SimpleCNN
 
 from mapper.transform import egomotion_transform
 from mapper.update import map_update, update_map
+from mapper.mid_level.encoder import mid_level_representations
+from config.config import REPRESENTATION_NAMES
 
 class Policy(nn.Module):
     def __init__(self, net, dim_actions):
@@ -213,9 +215,9 @@ class PointNavDRRNNet(Net):
             # ==========Deconv==========
             print("Passing residual decoder...")
             activation = self.upresnet(activation)  # upsample to map object
-            # observations["rgb"] = torch.swapaxes(map_update, 1, 3)            
+
             # TODO get the map update from the previous frame
-            map_update = egomotion_transform(map_update, dX)
+            map_update = egomotion_transform(rnn_hidden_states, dX)
             activation = update_map(activation, map_update)
             print("Passing map transform...")
             

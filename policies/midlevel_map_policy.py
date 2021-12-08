@@ -25,7 +25,7 @@ from habitat_baselines.rl.models.rnn_state_encoder import RNNStateEncoder
 from habitat_baselines.rl.models.simple_cnn import SimpleCNN
 
 from mapper.transform import egomotion_transform
-from mapper.update import map_update, update_map
+from mapper.update import update_map
 from mapper.mid_level.encoder import mid_level_representations
 from config.config import REPRESENTATION_NAMES
 

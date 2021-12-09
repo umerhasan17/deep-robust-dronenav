@@ -16,7 +16,7 @@ conda install -c aihabitat -c conda-forge bullet=2.88 habitat-sim=0.1.6 headless
 
 ### Setup habitat lab folder
 
-Build habitat lab from source using the specified commit hash.
+Build habitat lab from source using the specified commit hash (the folder is already in the repository, no need to git clone or download).
 
 ```
 cd habitat-api

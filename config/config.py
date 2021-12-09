@@ -2,9 +2,9 @@ import torch
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 # DEVICE = 'cpu'
-EXPERIMENT_IDS = ['Baseline', 'BaselineMidLevel', 'DRDN','DRDNActualMap','DRDNSupervisedMap']
+EXPERIMENT_IDS = ['Baseline', 'BaselineMidLevel', 'DRDN', 'DRDNActualMap','DRDNSupervisedMap']
 
-CURRENT_POLICY = EXPERIMENT_IDS[0]
+CURRENT_POLICY = EXPERIMENT_IDS[3]
 
 REPRESENTATION_NAMES = ['keypoints3d', 'depth_euclidean']
 

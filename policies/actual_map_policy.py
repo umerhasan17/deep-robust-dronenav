@@ -97,10 +97,10 @@ class CriticHead(nn.Module):
         return self.fc(x)
 
 
-class PointNavDRRNPolicy(Policy):
+class PointNavDRDNActualMapPolicy(Policy):
     def __init__(self, observation_space, action_space, hidden_size=512):
         super().__init__(
-            PointNavDRRNNet(
+            PointNavDRDNActualMapNet(
                 observation_space=observation_space, hidden_size=hidden_size
             ),
             action_space.n,
@@ -128,7 +128,7 @@ class Net(nn.Module, metaclass=abc.ABCMeta):
         pass
 
 
-class PointNavDRRNNet(Net):
+class PointNavDRDNActualMapNet(Net):
     r"""Network which passes the input image through CNN and concatenates
     goal vector with CNN's output and passes that through RNN.
     """

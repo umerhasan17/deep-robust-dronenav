@@ -2,18 +2,16 @@ import torch
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 # DEVICE = 'cpu'
-CURRENT_POLICY = 'Baseline'
-# CURRENT_POLICY = 'BaselineMidlevel'
-# CURRENT_POLICY = 'DRDN'
+EXPERIMENT_IDS = ['Baseline', 'BaselineMidLevel', 'DRDN','DRDNActualMap','DRDNSupervisedMap']
 
-
+CURRENT_POLICY = EXPERIMENT_IDS[0]
 
 REPRESENTATION_NAMES = ['keypoints3d', 'depth_euclidean']
 
 FC_NEURON_LISTS = [8 * len(REPRESENTATION_NAMES) * 16 * 16, 1024, 1024, 8 * len(REPRESENTATION_NAMES) * 16 * 16]
 RESIDUAL_LAYERS_PER_BLOCK = [2, 2, 2, 2]
 RESIDUAL_SIZE = [32, 64, 128, 256]
-if CURRENT_POLICY == 'DRDN':
+if CURRENT_POLICY in ['DRDN','DRDNActualMap','DRDNSupervisedMap']:
     RESIDUAL_NEURON_CHANNEL = [16, 8, 4, 2, 2]
 else:
     RESIDUAL_NEURON_CHANNEL = [16, 8, 4, 2, 3]

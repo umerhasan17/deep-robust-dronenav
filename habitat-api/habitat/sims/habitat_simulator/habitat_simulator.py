@@ -238,7 +238,7 @@ class HabitatSimMapSensor(Sensor):
         if self.global_map is None:
             self.compute_global_map()
             self.origin = np.array([pos[0], pos[1], alpha])
-            plt.imsave('debug/global_map' + '.jpeg', self.global_map)
+            # plt.imsave('debug/global_map' + '.jpeg', self.global_map)
 
         state = np.array([pos[0],pos[1],alpha])
 

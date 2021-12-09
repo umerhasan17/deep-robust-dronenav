@@ -1,10 +1,10 @@
-BASE_TASK_CONFIG_PATH: "config/habitat_pointnav_config.yaml"
+BASE_TASK_CONFIG_PATH: "config/habitat_config_DRDN_supervised/habitat_pointnav_config.yaml"
 TRAINER_NAME: "ppo"
 ENV_NAME: "NavRLEnv"
 SIMULATOR_GPU_ID: 0
 TORCH_GPU_ID: 0
 VIDEO_OPTION: ["disk", "tensorboard"]
-TENSORBOARD_DIR: "tb_DRDN" #changed
+TENSORBOARD_DIR: "tb_DRDN_supervised" #changed
 VIDEO_DIR: "video_dir"
 # To evaluate on all episodes, set this to -1
 TEST_EPISODE_COUNT: 2

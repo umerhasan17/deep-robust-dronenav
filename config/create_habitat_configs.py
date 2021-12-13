@@ -1,4 +1,5 @@
 import datetime
+import os
 
 import yaml
 
@@ -8,7 +9,7 @@ experiment_id_sensors = dict(
     Baseline=['RGB_SENSOR'],
     BaselineMidLevel=['RGB_SENSOR'],
     DRRN=['RGB_SENSOR', 'EGOMOTION'],
-    DRRNActualMap=['RGB_SENSOR', 'MAP_SENSOR'],
+    DRRNActualMap=['MAP_SENSOR'],
     DRRNSupervisedMap=['RGB_SENSOR', 'EGOMOTION']
 )
 
@@ -110,7 +111,7 @@ def create_habitat_pointnav_config_for_experiment(experiment_id):
             SUCCESS=dict(
                 SUCCESS_DISTANCE=0.2
             ),
-            POSSIBLE_ACTIONS=["MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT", "STOP"],
+            POSSIBLE_ACTIONS=["MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT"],  # TODO possibly add stop action here
         ),
         DATASET=dict(
             TYPE='PointNav-v1',
@@ -127,7 +128,3 @@ def create_habitat_configs():
         yaml.dump(create_habitat_config_for_experiment(experiment_id), yaml_file)
     with open(f'config/habitat_pointnav_config.yaml', 'w') as yaml_file:
         yaml.dump(create_habitat_pointnav_config_for_experiment(experiment_id), yaml_file)
-
-
-if __name__ == '__main__':
-    create_habitat_configs()

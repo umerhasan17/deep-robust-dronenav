@@ -1,5 +1,5 @@
 import torch
-
+import torch.utils.model_zoo
 from config.config import REPRESENTATION_NAMES, DEBUG
 from mapper.mid_level.encoder import mid_level_representations  # mid_level wrapper class
 
@@ -19,7 +19,6 @@ def convert_rgb_obs_to_map(observations, fc_network, decoder_network):
 
     if DEBUG:
         print(f"Encoding activation of shape {activation.shape} with mid level encoders.")
-
     activation = mid_level_representations(activation, REPRESENTATION_NAMES)
     # (BATCHSIZE x REPRESENTATION_NUMBER*2 x 16 x 16) tensor
 

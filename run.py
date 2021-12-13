@@ -1,19 +1,16 @@
 #!/usr/bin/env python3
 
+import argparse
 # Copyright (c) Facebook, Inc. and its affiliates.
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 import os
-
-import habitat
-
-import argparse
 import random
 
 import numpy as np
 import torch
 
-from config.config import DATASET_SAVE_FOLDER
+from config.config import DATASET_SAVE_FOLDER, DEBUG
 from config.create_habitat_configs import create_habitat_configs
 from habitat_baselines.common.baseline_registry import baseline_registry
 from habitat_baselines.config.default import get_config
@@ -62,7 +59,8 @@ def run_exp(exp_config: str, run_type: str, opts=None) -> None:
     np.random.seed(config.TASK_CONFIG.SEED)
     torch.manual_seed(config.TASK_CONFIG.SEED)
 
-    trainer_init = baseline_registry.get_trainer(config.TRAINER_NAME)   #we get the habitat_baselines.rl.ppo.ppo_trainer.PPOTrainer class
+    trainer_init = baseline_registry.get_trainer(config.TRAINER_NAME)
+    # we get the habitat_baselines.rl.ppo.ppo_trainer.PPOTrainer class
     assert trainer_init is not None, f"{config.TRAINER_NAME} is not supported"
     trainer = trainer_init(config)
 
@@ -78,4 +76,3 @@ if __name__ == "__main__":
     os.makedirs(os.path.join(DATASET_SAVE_FOLDER, 'circle_maps'), exist_ok=True)
     create_habitat_configs()
     main()
-

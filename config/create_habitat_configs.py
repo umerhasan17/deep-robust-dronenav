@@ -1,17 +1,16 @@
+import datetime
 import os
 
 import yaml
-
-import datetime
 
 from config.config import CURRENT_POLICY
 
 experiment_id_sensors = dict(
     Baseline=['RGB_SENSOR'],
     BaselineMidLevel=['RGB_SENSOR'],
-    DRDN=['RGB_SENSOR', 'EGOMOTION'],
-    DRDNActualMap=['RGB_SENSOR', 'MAP_SENSOR'],
-    DRDNSupervisedMap=['RGB_SENSOR', 'EGOMOTION']
+    DRRN=['RGB_SENSOR', 'EGOMOTION'],
+    DRRNActualMap=['MAP_SENSOR'],
+    DRRNSupervisedMap=['RGB_SENSOR', 'EGOMOTION']
 )
 
 
@@ -35,7 +34,7 @@ def create_habitat_config_for_experiment(experiment_id):
         NUM_PROCESSES=1,
         SENSORS=sensors,
         CHECKPOINT_FOLDER=ckpt_folder,
-        NUM_UPDATES=20,  # TODO change this
+        NUM_UPDATES=100,  # TODO change this
         LOG_INTERVAL=1,
         CHECKPOINT_INTERVAL=10,
         RL=dict(
@@ -112,7 +111,7 @@ def create_habitat_pointnav_config_for_experiment(experiment_id):
             SUCCESS=dict(
                 SUCCESS_DISTANCE=0.2
             ),
-            POSSIBLE_ACTIONS=["MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT", "STOP"],
+            POSSIBLE_ACTIONS=["MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT"],  # TODO possibly add stop action here
         ),
         DATASET=dict(
             TYPE='PointNav-v1',
@@ -125,7 +124,6 @@ def create_habitat_pointnav_config_for_experiment(experiment_id):
 def create_habitat_configs():
     experiment_id = CURRENT_POLICY
     print(f'Creating configs for {experiment_id}')
-    os.makedirs(f'{experiment_id}_configs', exist_ok=True)
     with open(f'config/habitat_config.yaml', 'w') as yaml_file:
         yaml.dump(create_habitat_config_for_experiment(experiment_id), yaml_file)
     with open(f'config/habitat_pointnav_config.yaml', 'w') as yaml_file:

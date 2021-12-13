@@ -24,10 +24,14 @@ from habitat_baselines.common.utils import CategoricalNet, Flatten
 from habitat_baselines.rl.models.rnn_state_encoder import RNNStateEncoder
 from habitat_baselines.rl.models.simple_cnn import SimpleCNN
 
+from mapper.mid_level.decoder import UpResNet
+from mapper.mid_level.fc import FC
 from mapper.transform import egomotion_transform
 from mapper.update import update_map
 from mapper.mid_level.encoder import mid_level_representations
-from config.config import REPRESENTATION_NAMES
+from config.config import REPRESENTATION_NAMES, RESIDUAL_LAYERS_PER_BLOCK, RESIDUAL_NEURON_CHANNEL, RESIDUAL_SIZE, \
+    STRIDES
+
 
 class Policy(nn.Module):
     def __init__(self, net, dim_actions):
@@ -158,6 +162,15 @@ class PointNavDRRNNet(Net):
             self._n_input_goal = hidden_size
 
         self._hidden_size = hidden_size
+
+        self.fc = FC()
+
+        self.upresnet = UpResNet(
+            layers=RESIDUAL_LAYERS_PER_BLOCK,
+            channels=RESIDUAL_NEURON_CHANNEL,
+            sizes=RESIDUAL_SIZE,
+            strides=STRIDES
+        )
 
         self.visual_encoder = SimpleCNN(observation_space, hidden_size)
 

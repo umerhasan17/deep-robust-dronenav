@@ -30,6 +30,14 @@ cd ..
 sudo apt install freeglut3 freeglut3-dev
 ```
 
+
+### Get Gibson Dataset
+
+```
+wget https://dl.fbaipublicfiles.com/...
+wget https://dl.fbaipublicfiles.com/...
+```
+
 ### Run Train / Eval:
 
 Remember to activate conda environment before running command.

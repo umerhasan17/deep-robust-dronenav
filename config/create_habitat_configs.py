@@ -28,15 +28,15 @@ def create_habitat_config_for_experiment(experiment_id):
         VIDEO_OPTION=["disk", "tensorboard"],
         TENSORBOARD_DIR=f"results/tb_{experiment_id}_{cur_dt}",
         VIDEO_DIR="video_dir",
-        # To evaluate on all episodes, set this to -1 # TODO create test validation datasets
-        TEST_EPISODE_COUNT=2,
+        # To evaluate on all episodes, set this to -1
+        TEST_EPISODE_COUNT=-1,
         EVAL_CKPT_PATH_DIR=ckpt_folder,
         NUM_PROCESSES=1,
         SENSORS=sensors,
         CHECKPOINT_FOLDER=ckpt_folder,
-        NUM_UPDATES=100,  # TODO change this
-        LOG_INTERVAL=1,
-        CHECKPOINT_INTERVAL=10,
+        NUM_UPDATES=5000,
+        LOG_INTERVAL=10,
+        CHECKPOINT_INTERVAL=200,
         RL=dict(
             PPO=dict(
                 # ppo params

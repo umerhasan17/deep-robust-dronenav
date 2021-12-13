@@ -8,8 +8,8 @@ def get_current_policy_object(policy_name):
     policy_objects = dict(
         Baseline=PointNavBaselinePolicy,
         BaselineMidlevel=PointNavBaselineMidLevelPolicy,
-        DRDN=PointNavDRRNPolicy,
-        DRDNActualMap=PointNavDRRNActualMapPolicy,
+        DRRN=PointNavDRRNPolicy,
+        DRRNActualMap=PointNavDRRNActualMapPolicy,
     )
 
     return policy_objects[policy_name]

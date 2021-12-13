@@ -33,7 +33,7 @@ def create_habitat_config_for_experiment(experiment_id):
         NUM_PROCESSES=1,
         SENSORS=sensors,
         CHECKPOINT_FOLDER=ckpt_folder,
-        NUM_UPDATES=20,  # TODO change this
+        NUM_UPDATES=100,  # TODO change this
         LOG_INTERVAL=1,
         CHECKPOINT_INTERVAL=10,
         RL=dict(

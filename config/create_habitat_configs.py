@@ -9,9 +9,9 @@ from config.config import CURRENT_POLICY
 experiment_id_sensors = dict(
     Baseline=['RGB_SENSOR'],
     BaselineMidLevel=['RGB_SENSOR'],
-    DRDN=['RGB_SENSOR', 'EGOMOTION'],
-    DRDNActualMap=['RGB_SENSOR', 'MAP_SENSOR'],
-    DRDNSupervisedMap=['RGB_SENSOR', 'EGOMOTION']
+    DRRN=['RGB_SENSOR', 'EGOMOTION'],
+    DRRNActualMap=['RGB_SENSOR', 'MAP_SENSOR'],
+    DRRNSupervisedMap=['RGB_SENSOR', 'EGOMOTION']
 )
 
 

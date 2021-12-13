@@ -6,7 +6,7 @@ from matplotlib.pyplot import imshow, imsave
 import os
 from torchvision import datasets, transforms
 from torchvision.io import read_image
-from map import FC_UpResNet
+from mid_level.supervised_training_model import SupervisedTrainingModel
 from mapper.mid_level.encoder import mid_level_representations  # mid_level wrapper class
 import torch
 from config.config import REPRESENTATION_NAMES, device
@@ -40,7 +40,7 @@ class CustomImageDataset(Dataset):
         return rgb, real_map
 dataset = CustomImageDataset("./mapper/rgb_map_dataset")
 train_loader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers)
-model = FC_UpResNet().to(device)
+model = SupervisedTrainingModel().to(device)
 criterion = nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-5)
 

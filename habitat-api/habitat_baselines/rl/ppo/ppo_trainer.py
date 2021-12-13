@@ -33,7 +33,6 @@ from habitat_baselines.rl.ppo import PPO
 from policies.get_policy import get_current_policy_object
 
 from habitat.utils import profiling_utils
-from mapper.map import create_map
 
 @baseline_registry.register_trainer(name="ppo")
 class PPOTrainer(BaseRLTrainer):

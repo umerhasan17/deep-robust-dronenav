@@ -1,8 +1,6 @@
-import os
+import datetime
 
 import yaml
-
-import datetime
 
 from config.config import CURRENT_POLICY
 
@@ -129,3 +127,7 @@ def create_habitat_configs():
         yaml.dump(create_habitat_config_for_experiment(experiment_id), yaml_file)
     with open(f'config/habitat_pointnav_config.yaml', 'w') as yaml_file:
         yaml.dump(create_habitat_pointnav_config_for_experiment(experiment_id), yaml_file)
+
+
+if __name__ == '__main__':
+    create_habitat_configs()

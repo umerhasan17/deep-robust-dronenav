@@ -13,7 +13,7 @@ import random
 import numpy as np
 import torch
 
-from config.config import DATASET_SAVE_FOLDER
+from config.config import DATASET_SAVE_FOLDER, DEBUG
 from config.create_habitat_configs import create_habitat_configs
 from habitat_baselines.common.baseline_registry import baseline_registry
 from habitat_baselines.config.default import get_config
@@ -76,6 +76,7 @@ if __name__ == "__main__":
     os.makedirs(os.path.join(DATASET_SAVE_FOLDER, 'images'), exist_ok=True)
     os.makedirs(os.path.join(DATASET_SAVE_FOLDER, 'maps'), exist_ok=True)
     os.makedirs(os.path.join(DATASET_SAVE_FOLDER, 'circle_maps'), exist_ok=True)
-    create_habitat_configs()
+    if DEBUG:
+        print('Have you created the correct configs?')
     main()
 

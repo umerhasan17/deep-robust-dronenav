@@ -9,9 +9,9 @@ from config.config import CURRENT_POLICY
 experiment_id_sensors = dict(
     Baseline=['RGB_SENSOR'],
     BaselineMidLevel=['RGB_SENSOR'],
-    DRDN=['RGB_SENSOR', 'EGOMOTION'],
-    DRDNActualMap=['RGB_SENSOR', 'MAP_SENSOR'],
-    DRDNSupervisedMap=['RGB_SENSOR', 'EGOMOTION']
+    DRRN=['RGB_SENSOR', 'EGOMOTION'],
+    DRRNActualMap=['RGB_SENSOR', 'MAP_SENSOR'],
+    DRRNSupervisedMap=['RGB_SENSOR', 'EGOMOTION']
 )
 
 
@@ -125,7 +125,6 @@ def create_habitat_pointnav_config_for_experiment(experiment_id):
 def create_habitat_configs():
     experiment_id = CURRENT_POLICY
     print(f'Creating configs for {experiment_id}')
-    os.makedirs(f'{experiment_id}_configs', exist_ok=True)
     with open(f'config/habitat_config.yaml', 'w') as yaml_file:
         yaml.dump(create_habitat_config_for_experiment(experiment_id), yaml_file)
     with open(f'config/habitat_pointnav_config.yaml', 'w') as yaml_file:

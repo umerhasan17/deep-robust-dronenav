@@ -24,6 +24,7 @@ from habitat_baselines.common.utils import CategoricalNet, Flatten
 from habitat_baselines.rl.models.rnn_state_encoder import RNNStateEncoder
 from habitat_baselines.rl.models.simple_cnn import SimpleCNN
 
+from mapper.mid_level.fc import FC
 from mapper.transform import egomotion_transform
 from mapper.update import update_map
 from mapper.mid_level.encoder import mid_level_representations
@@ -158,6 +159,8 @@ class PointNavDRRNNet(Net):
             self._n_input_goal = hidden_size
 
         self._hidden_size = hidden_size
+
+        self.fc = FC()
 
         self.visual_encoder = SimpleCNN(observation_space, hidden_size)
 

@@ -48,3 +48,14 @@ Remember to activate conda environment before running command.
 ```
 python run.py --exp-config config/habitat_config.yaml --run-type train
 ```
+
+## Experiment setup 
+
+- Same PPO settings everywhere
+    - BATCH_SIZE = 32
+    - Learning rate = 2.5e-4
+- Train dataset, all maps in the gibson dataset starting with the letter 'A'
+- Experiments
+    1. Baseline midlevel
+    2. Ground-truth map
+    3. Mapper network form midlevel

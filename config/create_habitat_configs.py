@@ -1,7 +1,7 @@
 import datetime
-import os
 
 import yaml
+from shutil import copyfile
 
 from config.config import CURRENT_POLICY
 
@@ -14,10 +14,9 @@ experiment_id_sensors = dict(
 )
 
 
-def create_habitat_config_for_experiment(experiment_id):
-    cur_dt = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
-    ckpt_folder = f"models/checkpoints_{experiment_id}_{cur_dt}"
+def create_habitat_config_for_experiment(experiment_id, results_base_dir):
     sensors = experiment_id_sensors[experiment_id]
+    ckpt_folder = f"{results_base_dir}/checkpoints"
 
     return dict(
         BASE_TASK_CONFIG_PATH="config/habitat_pointnav_config.yaml",
@@ -26,16 +25,17 @@ def create_habitat_config_for_experiment(experiment_id):
         SIMULATOR_GPU_ID=0,
         TORCH_GPU_ID=0,
         VIDEO_OPTION=["disk", "tensorboard"],
-        TENSORBOARD_DIR=f"results/tb_{experiment_id}_{cur_dt}",
-        VIDEO_DIR="video_dir",
+        TENSORBOARD_DIR=f"{results_base_dir}/tb",
+        VIDEO_DIR=f"{results_base_dir}/video_dir",
         # To evaluate on all episodes, set this to -1
         TEST_EPISODE_COUNT=-1,
-        EVAL_CKPT_PATH_DIR=ckpt_folder,
         NUM_PROCESSES=4,
         SENSORS=sensors,
+        EVAL_CKPT_PATH_DIR=ckpt_folder,
         CHECKPOINT_FOLDER=ckpt_folder,
         NUM_UPDATES=5000,
         LOG_INTERVAL=10,
+        LOG_FILE=f"{results_base_dir}/train.log",
         CHECKPOINT_INTERVAL=200,
         RL=dict(
             PPO=dict(
@@ -123,8 +123,12 @@ def create_habitat_pointnav_config_for_experiment(experiment_id):
 
 def create_habitat_configs():
     experiment_id = CURRENT_POLICY
+    cur_dt = datetime.datetime.now().strftime('%m_%d_%H_%M')
+    results_base_dir = f"results/results_{experiment_id}_{cur_dt}"
     print(f'Creating configs for {experiment_id}')
     with open(f'config/habitat_config.yaml', 'w') as yaml_file:
-        yaml.dump(create_habitat_config_for_experiment(experiment_id), yaml_file)
+        yaml.dump(create_habitat_config_for_experiment(experiment_id, results_base_dir), yaml_file)
     with open(f'config/habitat_pointnav_config.yaml', 'w') as yaml_file:
         yaml.dump(create_habitat_pointnav_config_for_experiment(experiment_id), yaml_file)
+    copyfile('config/habitat_config.yaml', results_base_dir + 'habitat_config.yaml')
+    copyfile('config/habitat_pointnav_config.yaml', results_base_dir + 'habitat_pointnav_config.yaml')

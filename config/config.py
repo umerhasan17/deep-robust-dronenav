@@ -20,7 +20,7 @@ STRIDES = [1, 1, 1]
 IMG_DIMENSIONS = (3, 256, 256)  # mid level reps are in colour right now
 MAP_DIMENSIONS = (2, 256, 256)
 MAP_DOWNSAMPLE = 2 ** 3
-BATCHSIZE = 4
+BATCHSIZE = 32
 
 """ Config to create image map dataset for supervised training of mapper architecture + RL architecture. """
 DATASET_SAVE_PERIOD = 20

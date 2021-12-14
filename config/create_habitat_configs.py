@@ -1,9 +1,10 @@
 import datetime
+import os
 
 import yaml
 from shutil import copyfile
 
-from config.config import CURRENT_POLICY
+from config.config import CURRENT_POLICY, BATCHSIZE
 
 experiment_id_sensors = dict(
     Baseline=['RGB_SENSOR'],
@@ -42,7 +43,7 @@ def create_habitat_config_for_experiment(experiment_id, results_base_dir):
                 # ppo params
                 clip_param=0.1,
                 ppo_epoch=4,
-                num_mini_batch=32,
+                num_mini_batch=BATCHSIZE,
                 value_loss_coef=0.5,
                 entropy_coef=0.01,
                 lr=2.5e-4,
@@ -130,5 +131,6 @@ def create_habitat_configs():
         yaml.dump(create_habitat_config_for_experiment(experiment_id, results_base_dir), yaml_file)
     with open(f'config/habitat_pointnav_config.yaml', 'w') as yaml_file:
         yaml.dump(create_habitat_pointnav_config_for_experiment(experiment_id), yaml_file)
+    os.makedirs(results_base_dir, exist_ok=True)
     copyfile('config/habitat_config.yaml', results_base_dir + '/habitat_config.yaml')
     copyfile('config/habitat_pointnav_config.yaml', results_base_dir + '/habitat_pointnav_config.yaml')

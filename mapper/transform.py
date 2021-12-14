@@ -38,7 +38,7 @@ def egomotion_transform(input_map_tensor, dX):
     y = dX[1] * (MAP_DIMENSIONS[2] / MAP_SIZE[1])
     t = dX[2]
 
-    affine_transform_vector = -np.array([x, y, t])  # compute map coorrection
+    affine_transform_vector = -np.array([x, y, t])  # compute map correction
 
     return tensor_transform(input_map_tensor, affine_transform_vector)  # call affine transform function
 

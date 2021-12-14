@@ -4,7 +4,7 @@ from shutil import copyfile
 
 import yaml
 
-from config.config import CURRENT_POLICY, BATCHSIZE
+from config.config import CURRENT_POLICY, BATCHSIZE, MAP_DIMENSIONS
 
 experiment_id_custom_details = dict(
     Baseline=dict(
@@ -16,8 +16,8 @@ experiment_id_custom_details = dict(
         ppo_hidden_size=128,
     ),
     DRRN=dict(
-        sensors=['RGB_SENSOR', 'EGOMOTION'],
-        ppo_hidden_size=128,
+        sensors=['RGB_SENSOR', 'MIDLEVEL', 'EGOMOTION'],
+        ppo_hidden_size=MAP_DIMENSIONS[0] * MAP_DIMENSIONS[1] * MAP_DIMENSIONS[2],
     ),
     DRRNActualMap=dict(
         sensors=['MAP_SENSOR'],

@@ -31,8 +31,6 @@ class MidLevelCNN(BaseCNN):
         if self.is_blind:
             self.cnn = nn.Sequential()
         else:
-            print('CNN DIMS, OUTPUT SIZE', cnn_dims, output_size)
-
             self.cnn = nn.Sequential(
                 nn.Conv2d(
                     in_channels=self._n_input_mid_level,

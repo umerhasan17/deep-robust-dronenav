@@ -1,11 +1,11 @@
 import torch
 import torch.utils.model_zoo
+
 from config.config import REPRESENTATION_NAMES, DEBUG
 from mapper.mid_level.encoder import mid_level_representations  # mid_level wrapper class
 
 
 def encode_with_mid_level(image):
-
     image = torch.swapaxes(image, 1, 3)
     if DEBUG:
         print(f"Encoding image of shape {image.shape} with mid level encoders.")
@@ -16,18 +16,8 @@ def encode_with_mid_level(image):
     return image
 
 
-def convert_rgb_obs_to_map(observations, fc_network, decoder_network):
-    """
-        Converts RGB tensor to whatever is outputted by the mapper architecture.
-        In the full experiment, we train the mapper to output a map with a free space dimension and a confidence
-        dimension.
-    """
-
-    assert 'rgb' in observations
-
-    image = observations["rgb"]
-
-    image = encode_with_mid_level(image)
+def convert_midlevel_to_map(midlevel_representation, fc_network, decoder_network):
+    image = midlevel_representation
 
     if DEBUG:
         print(f"Passing activation of shape {image.shape} through fcn.")
@@ -51,6 +41,4 @@ def convert_rgb_obs_to_map(observations, fc_network, decoder_network):
     if DEBUG:
         print(f'Returning output tensor with shape: {decoder_output.shape}')
 
-    observations["rgb"] = decoder_output
-
-    return observations
+    return decoder_output

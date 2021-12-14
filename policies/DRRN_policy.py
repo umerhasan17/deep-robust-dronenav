@@ -10,24 +10,20 @@ policies/midlevel_map.py
 """
 
 import torch
-from gym import spaces
+
+from config.config import RESIDUAL_LAYERS_PER_BLOCK, RESIDUAL_NEURON_CHANNEL, RESIDUAL_SIZE, \
+    STRIDES, MAP_DIMENSIONS, DEBUG, BATCHSIZE
 from habitat.tasks.nav.nav import (
-    ImageGoalSensor,
     IntegratedPointGoalGPSAndCompassSensor,
-    PointGoalSensor,
 )
 from habitat_baselines.rl.models.rnn_state_encoder import RNNStateEncoder
-from habitat_baselines.rl.models.simple_cnn import SimpleCNN
 from habitat_baselines.rl.ppo.policy import Policy, Net
-
-from config.config import REPRESENTATION_NAMES, RESIDUAL_LAYERS_PER_BLOCK, RESIDUAL_NEURON_CHANNEL, RESIDUAL_SIZE, \
-    STRIDES, MAP_DIMENSIONS
-from mapper.map import convert_rgb_obs_to_map
+from mapper.map import convert_midlevel_to_map
 from mapper.mid_level.decoder import UpResNet
-from mapper.mid_level.encoder import mid_level_representations
 from mapper.mid_level.fc import FC
 from mapper.transform import egomotion_transform
 from mapper.update import update_map
+from planner.drrn_cnn import MapPlanner
 
 
 class PointNavDRRNPolicy(Policy):
@@ -62,7 +58,7 @@ class PointNavDRRNNet(Net):
             strides=STRIDES
         )
 
-        self.visual_encoder = SimpleCNN(observation_space, hidden_size)
+        self.visual_encoder = MapPlanner()
 
         self.state_encoder = RNNStateEncoder(
             (0 if self.is_blind else self._hidden_size) + self._n_input_goal,
@@ -77,40 +73,48 @@ class PointNavDRRNNet(Net):
 
     @property
     def is_blind(self):
-        return self.visual_encoder.is_blind
+        return False
 
     @property
     def num_recurrent_layers(self):
-        return self.state_encoder.num_recurrent_layers
+        return 1
 
     def forward(self, observations, rnn_hidden_states, prev_actions, masks):
         target_encoding = observations[IntegratedPointGoalGPSAndCompassSensor.cls_uuid]
         x = [target_encoding]
 
-        if not self.is_blind:
+        decoded_map = convert_midlevel_to_map(observations["midlevel"], self.fc, self.upresnet)
 
-            observations = convert_rgb_obs_to_map(observations, self.fc, self.upresnet)
-            # observations["rgb"] now contains the map
-            assert observations["rgb"].shape == MAP_DIMENSIONS
+        dx = observations["egomotion"]
 
-            delta_vector = observations["egomotion"]
+        dx = dx[0, 0, 0, :]
 
+        # previous map is stored in the rnn hidden states
+        previous_map = rnn_hidden_states.reshape((1, *MAP_DIMENSIONS))
+        previous_map = egomotion_transform(previous_map, dx)
 
+        del observations["rgb"]
+        del observations["egomotion"]
+        del observations["midlevel"]
 
-            # TODO get the map update from the previous frame
+        assert decoded_map.shape == (BATCHSIZE, *MAP_DIMENSIONS)
 
+        new_map = update_map(decoded_map, previous_map)
 
+        if DEBUG:
+            print(f'New map generated of shape: {new_map.shape}')
 
+        new_map = torch.flatten(new_map)
 
-            output_map = egomotion_transform(rnn_hidden_states, delta_vector)
-            activation = update_map(activation, output_map)
-            print("Passing map transform...")
+        if DEBUG:
+            print(f'New map flattened to shape: {new_map.shape}')
 
-            perception_embed = self.visual_encoder(activation)  ## encode back to policy
+        perception_embed = self.visual_encoder(new_map)  # encode back to policy
 
-            x = [perception_embed] + x
+        x = [perception_embed] + x
 
         x = torch.cat(x, dim=1)
-        x, rnn_hidden_states = self.state_encoder(x, rnn_hidden_states, masks)
+
+        x, rnn_hidden_states = self.state_encoder(x, new_map.flatten(), masks)
 
         return x, rnn_hidden_states

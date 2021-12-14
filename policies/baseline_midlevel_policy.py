@@ -11,13 +11,13 @@ from habitat.tasks.nav.nav import (
 from habitat_baselines.rl.models.rnn_state_encoder import RNNStateEncoder
 from habitat_baselines.rl.models.simple_cnn import SimpleCNN
 from habitat_baselines.rl.ppo.policy import Policy, Net
-from mapper.map import convert_rgb_obs_to_map
+from mapper.map import convert_rgb_obs_to_map, encode_with_mid_level
 from mapper.mid_level.decoder import UpResNet
 from mapper.mid_level.fc import FC
 
 
 class PointNavBaselineMidLevelPolicy(Policy):
-    def __init__(self, observation_space, action_space, hidden_size=512):
+    def __init__(self, observation_space, action_space, hidden_size=128):
         super().__init__(
             PointNavBaselineMidLevelNet(
                 observation_space=observation_space, hidden_size=hidden_size
@@ -74,8 +74,8 @@ class PointNavBaselineMidLevelNet(Net):
         x = [target_encoding]
 
         if not self.is_blind:
-            observations = convert_rgb_obs_to_map(observations, self.fc, self.upresnet)
-            perception_embed = self.visual_encoder(observations)  # [batch,256,256,3]
+            observations["rgb"] = encode_with_mid_level(observations["rgb"])
+            perception_embed = self.visual_encoder(observations)
             x = [perception_embed] + x
 
         x = torch.cat(x, dim=1)

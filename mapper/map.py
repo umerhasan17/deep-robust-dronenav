@@ -4,6 +4,18 @@ from config.config import REPRESENTATION_NAMES, DEBUG
 from mapper.mid_level.encoder import mid_level_representations  # mid_level wrapper class
 
 
+def encode_with_mid_level(image):
+
+    image = torch.swapaxes(image, 1, 3)
+    if DEBUG:
+        print(f"Encoding image of shape {image.shape} with mid level encoders.")
+    image = mid_level_representations(image, REPRESENTATION_NAMES)
+    # (BATCH SIZE x REPRESENTATION_NUMBER*2 x 16 x 16) tensor
+    if DEBUG:
+        print(f'Returning encoded representation of shape {image.shape}.')
+    return image
+
+
 def convert_rgb_obs_to_map(observations, fc_network, decoder_network):
     """
         Converts RGB tensor to whatever is outputted by the mapper architecture.
@@ -14,31 +26,26 @@ def convert_rgb_obs_to_map(observations, fc_network, decoder_network):
     assert 'rgb' in observations
 
     image = observations["rgb"]
-    image = torch.swapaxes(image, 1, 3)
-    activation = image
+
+    image = encode_with_mid_level(image)
 
     if DEBUG:
-        print(f"Encoding activation of shape {activation.shape} with mid level encoders.")
-    activation = mid_level_representations(activation, REPRESENTATION_NAMES)
-    # (BATCHSIZE x REPRESENTATION_NUMBER*2 x 16 x 16) tensor
+        print(f"Passing activation of shape {image.shape} through fcn.")
 
-    if DEBUG:
-        print(f"Passing activation of shape {activation.shape} through fcn.")
-
-    activation = activation.view(activation.shape[0], 1, -1)
+    image = image.view(image.shape[0], 1, -1)
     # flatten all dimensions except batch,
     # --> tensor of the form (BATCHSIZE x 2048*REPRESENTATION_NUMBER)
 
-    activation = fc_network(activation)
+    image = fc_network(image)
     # pass through dense layer --> (BATCHSIZE x 2048*REPRESENTATION_NUMBER) tensor
-    activation = activation.view(activation.shape[0], 8 * len(REPRESENTATION_NAMES), 16, 16)
+    image = image.view(image.shape[0], 8 * len(REPRESENTATION_NAMES), 16, 16)
 
     # after fully connected layer, #(BATCHSIZE x REPRESENTATION_NUMBER*2 x 16 x 16) tensor
 
     if DEBUG:
-        print(f"Passing activation of shape {activation.shape} to decoder.")
+        print(f"Passing activation of shape {image.shape} to decoder.")
 
-    decoder_output = decoder_network(activation)
+    decoder_output = decoder_network(image)
     decoder_output = torch.swapaxes(decoder_output, 1, 3)
 
     if DEBUG:

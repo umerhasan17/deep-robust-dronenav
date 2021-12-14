@@ -130,5 +130,5 @@ def create_habitat_configs():
         yaml.dump(create_habitat_config_for_experiment(experiment_id, results_base_dir), yaml_file)
     with open(f'config/habitat_pointnav_config.yaml', 'w') as yaml_file:
         yaml.dump(create_habitat_pointnav_config_for_experiment(experiment_id), yaml_file)
-    copyfile('config/habitat_config.yaml', results_base_dir + 'habitat_config.yaml')
-    copyfile('config/habitat_pointnav_config.yaml', results_base_dir + 'habitat_pointnav_config.yaml')
+    copyfile('config/habitat_config.yaml', results_base_dir + '/habitat_config.yaml')
+    copyfile('config/habitat_pointnav_config.yaml', results_base_dir + '/habitat_pointnav_config.yaml')

@@ -31,7 +31,7 @@ def create_habitat_config_for_experiment(experiment_id):
         # To evaluate on all episodes, set this to -1
         TEST_EPISODE_COUNT=-1,
         EVAL_CKPT_PATH_DIR=ckpt_folder,
-        NUM_PROCESSES=1,
+        NUM_PROCESSES=4,
         SENSORS=sensors,
         CHECKPOINT_FOLDER=ckpt_folder,
         NUM_UPDATES=5000,
@@ -42,7 +42,7 @@ def create_habitat_config_for_experiment(experiment_id):
                 # ppo params
                 clip_param=0.1,
                 ppo_epoch=4,
-                num_mini_batch=1,
+                num_mini_batch=32,
                 value_loss_coef=0.5,
                 entropy_coef=0.01,
                 lr=2.5e-4,

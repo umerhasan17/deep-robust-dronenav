@@ -59,3 +59,11 @@ python run.py --exp-config config/habitat_config.yaml --run-type train
     1. Baseline midlevel
     2. Ground-truth map
     3. Mapper network form midlevel
+
+
+
+### TODO
+
+Map vector in rnn hidden states
+Fix transform relating to map size (Titouan)
+Training with good subset of data?

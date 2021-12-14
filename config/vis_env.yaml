@@ -122,7 +122,6 @@ dependencies:
     - grpcio==1.41.1
     - gym==0.10.9
     - h5py==3.1.0
-    - habitat-sim==0.1.6
     - idna==3.3
     - ifcfg==0.22
     - importlib-metadata==4.8.2

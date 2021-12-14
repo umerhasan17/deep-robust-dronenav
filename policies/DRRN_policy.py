@@ -1,32 +1,46 @@
-"""
-Replace RGB observations with mid level representations in PPO policy
-"""
-import torch
+""" 
+policies/midlevel_map.py
+----------------------------------------------------------------------------
+     Authors : Yongtao Wu, Umer Hasan Sayed, Titouan Renard
+     Last Update : December 2021
 
-from config.config import RESIDUAL_LAYERS_PER_BLOCK, RESIDUAL_NEURON_CHANNEL, RESIDUAL_SIZE, \
-    STRIDES
+     policy class for the full RL agent
+
+----------------------------------------------------------------------------
+"""
+
+import torch
+from gym import spaces
 from habitat.tasks.nav.nav import (
+    ImageGoalSensor,
     IntegratedPointGoalGPSAndCompassSensor,
+    PointGoalSensor,
 )
 from habitat_baselines.rl.models.rnn_state_encoder import RNNStateEncoder
 from habitat_baselines.rl.models.simple_cnn import SimpleCNN
 from habitat_baselines.rl.ppo.policy import Policy, Net
-from mapper.map import convert_rgb_obs_to_map, encode_with_mid_level
+
+from config.config import REPRESENTATION_NAMES, RESIDUAL_LAYERS_PER_BLOCK, RESIDUAL_NEURON_CHANNEL, RESIDUAL_SIZE, \
+    STRIDES, MAP_DIMENSIONS
+from mapper.map import convert_rgb_obs_to_map
 from mapper.mid_level.decoder import UpResNet
+from mapper.mid_level.encoder import mid_level_representations
 from mapper.mid_level.fc import FC
+from mapper.transform import egomotion_transform
+from mapper.update import update_map
 
 
-class PointNavBaselineMidLevelPolicy(Policy):
-    def __init__(self, observation_space, action_space, hidden_size=128):
+class PointNavDRRNPolicy(Policy):
+    def __init__(self, observation_space, action_space, hidden_size=512):
         super().__init__(
-            PointNavBaselineMidLevelNet(
+            PointNavDRRNNet(
                 observation_space=observation_space, hidden_size=hidden_size
             ),
             action_space.n,
         )
 
 
-class PointNavBaselineMidLevelNet(Net):
+class PointNavDRRNNet(Net):
     r"""Network which passes the input image through CNN and concatenates
     goal vector with CNN's output and passes that through RNN.
     """
@@ -74,8 +88,26 @@ class PointNavBaselineMidLevelNet(Net):
         x = [target_encoding]
 
         if not self.is_blind:
-            observations["rgb"] = encode_with_mid_level(observations["rgb"])
-            perception_embed = self.visual_encoder(observations)
+
+            observations = convert_rgb_obs_to_map(observations, self.fc, self.upresnet)
+            # observations["rgb"] now contains the map
+            assert observations["rgb"].shape == MAP_DIMENSIONS
+
+            delta_vector = observations["egomotion"]
+
+
+
+            # TODO get the map update from the previous frame
+
+
+
+
+            output_map = egomotion_transform(rnn_hidden_states, delta_vector)
+            activation = update_map(activation, output_map)
+            print("Passing map transform...")
+
+            perception_embed = self.visual_encoder(activation)  ## encode back to policy
+
             x = [perception_embed] + x
 
         x = torch.cat(x, dim=1)

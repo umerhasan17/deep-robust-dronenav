@@ -25,3 +25,4 @@ Remember to activate conda environment before running command.
 ```
 python run.py --exp-config config/habitat_config.yaml --run-type train
 ```
+

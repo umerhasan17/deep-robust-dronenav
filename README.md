@@ -12,6 +12,9 @@ conda activate vis5
 ### Install habitat sim
 ```
 conda install -c aihabitat -c conda-forge bullet=2.88 habitat-sim=0.1.6 headless withbullet
+pip install cupy # with your cuda version given by nvcc -V
+conda install cudatoolkit
+conda install cudnn
 ```
 
 ### Setup habitat lab folder

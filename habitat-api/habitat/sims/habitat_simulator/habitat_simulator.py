@@ -17,6 +17,9 @@ import habitat_sim
 import numpy as np
 import scipy.ndimage as nd
 from matplotlib.transforms import Affine2D
+
+from mapper.mid_level.encoder import mid_level_representations
+
 try:
     import cupy
     import cupyx.scipy.ndimage as ndc
@@ -27,7 +30,8 @@ except ImportError:
     CUPYAVAILABLE = False
 
 import habitat
-from config.config import MAP_DIMENSIONS, MAP_SIZE, MAP_DOWNSAMPLE, DATASET_SAVE_PERIOD, DATASET_SAVE_FOLDER, START_IMAGE_NUMBER
+from config.config import MAP_DIMENSIONS, MAP_SIZE, MAP_DOWNSAMPLE, DATASET_SAVE_PERIOD, DATASET_SAVE_FOLDER, \
+    START_IMAGE_NUMBER, MID_LEVEL_DIMENSIONS, DEBUG, REPRESENTATION_NAMES, device
 from habitat.core.dataset import Episode
 from habitat.core.logging import logger
 from habitat.core.registry import registry
@@ -84,7 +88,6 @@ def check_sim_obs(obs, sensor):
     )
 
 
-
 @registry.register_sensor
 class HabitatSimRGBSensor(RGBSensor):
     sim_sensor_type: habitat_sim.SensorType
@@ -116,6 +119,52 @@ class HabitatSimRGBSensor(RGBSensor):
             # plt.imsave(os.path.join(DATASET_SAVE_FOLDER, 'images', f'rgb_{self.current_scene_name}_{str((self.image_number // DATASET_SAVE_PERIOD) + START_IMAGE_NUMBER)}.jpeg'), obs)
 
         self.image_number = self.image_number + 1
+        return obs
+
+
+@registry.register_sensor(name='MIDLEVEL')
+class HabitatSimMidLevelSensor(Sensor):
+    """ Holds mid level encodings """
+
+    sim_sensor_type: habitat_sim.SensorType
+
+    def __init__(self, sim, config):
+        self._sim = sim
+        self.sim_sensor_type = habitat_sim.SensorType.COLOR
+        super().__init__(config=config)
+        self.prev_pose = None
+
+    def _get_uuid(self, *args: Any, **kwargs: Any) -> str:
+        return 'midlevel'
+
+    def _get_sensor_type(self, *args: Any, **kwargs: Any) -> SensorTypes:
+        return self.sim_sensor_type
+
+    def _get_observation_space(self, *args: Any, **kwargs: Any):
+        return spaces.Box(
+            low=0,
+            high=255,
+            shape=MID_LEVEL_DIMENSIONS,
+            dtype=np.uint8,
+        )
+
+    def get_observation(self, sim_obs):
+        obs = sim_obs.get('rgb', None)
+        check_sim_obs(obs, self)
+
+        # remove alpha channel
+        obs = obs[:, :, :RGBSENSOR_DIMENSION]
+
+        obs = torch.Tensor(obs).to(device)
+        obs = torch.transpose(obs, 0, 2)
+        obs = obs.unsqueeze(0)
+
+        if DEBUG:
+            print(f"Encoding image of shape {obs.shape} with mid level encoders.")
+        obs = mid_level_representations(obs, REPRESENTATION_NAMES)
+        if DEBUG:
+            print(f'Returning encoded representation of shape {obs.shape}.')
+        obs = obs[0, :, :, :]
         return obs
 
 
@@ -151,13 +200,13 @@ class AgentPositionSensor(Sensor):
         pos = (self._sim.get_agent_state().position[0],self._sim.get_agent_state().position[2])
         sim_quat = self._sim.get_agent_state().rotation
         alpha = -quat_to_angle_axis(sim_quat)[0] + np.pi/2
-        
+
         state = np.array([pos[0],pos[1],alpha])
 
         if self.prev_pose is None:
             self.prev_pose = state
             return np.zeros((1,1,3))
-        
+
         world_displacement = state - self.prev_pose # displacement in the world frame
         world_to_robot_transformation_matrix = Affine2D().rotate_around(0, 0, np.pi/2-self.prev_pose[2]).get_matrix()  # negative rotation to compensate for positive rotation
         robot_displacement = torch.unsqueeze(torch.Tensor(world_to_robot_transformation_matrix @ world_displacement),0)

@@ -19,8 +19,9 @@ else:
 STRIDES = [1, 1, 1]
 IMG_DIMENSIONS = (3, 256, 256)  # mid level reps are in colour right now
 MAP_DIMENSIONS = (2, 256, 256)
+MID_LEVEL_DIMENSIONS = (16, 16, 16)
 MAP_DOWNSAMPLE = 2 ** 3
-BATCHSIZE = 32
+BATCHSIZE = 1
 
 """ Config to create image map dataset for supervised training of mapper architecture + RL architecture. """
 DATASET_SAVE_PERIOD = 20
@@ -29,9 +30,6 @@ START_IMAGE_NUMBER = 0
 
 MAP_SIZE = (5, 5)  # map size (in [m]), given a 256x256 map, picking map size = 5 gives a resolution of ~2cm
 
-# TODO add habitat_config yaml path
-# TODO add data path for use in habitat_config
-
 HABITAT_CONFIGS_PATH = 'configs/'
 
-DEBUG = True
+DEBUG = False

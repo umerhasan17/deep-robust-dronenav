@@ -1,22 +1,37 @@
 import datetime
 import os
+from shutil import copyfile
 
 import yaml
-from shutil import copyfile
 
 from config.config import CURRENT_POLICY, BATCHSIZE
 
-experiment_id_sensors = dict(
-    Baseline=['RGB_SENSOR'],
-    BaselineMidLevel=['RGB_SENSOR'],
-    DRRN=['RGB_SENSOR', 'EGOMOTION'],
-    DRRNActualMap=['MAP_SENSOR'],
-    DRRNSupervisedMap=['RGB_SENSOR', 'EGOMOTION']
+experiment_id_custom_details = dict(
+    Baseline=dict(
+        sensors=['RGB_SENSOR'],
+        ppo_hidden_size=512,
+    ),
+    BaselineMidLevel=dict(
+        sensors=['RGB_SENSOR', 'MIDLEVEL'],
+        ppo_hidden_size=128,
+    ),
+    DRRN=dict(
+        sensors=['RGB_SENSOR', 'EGOMOTION'],
+        ppo_hidden_size=128,
+    ),
+    DRRNActualMap=dict(
+        sensors=['MAP_SENSOR'],
+        ppo_hidden_size=128,
+    ),
+    DRRNSupervisedMap=dict(
+        sensors=['RGB_SENSOR', 'EGOMOTION'],
+        ppo_hidden_size=128,
+    ),
 )
 
 
 def create_habitat_config_for_experiment(experiment_id, results_base_dir):
-    sensors = experiment_id_sensors[experiment_id]
+    sensors = experiment_id_custom_details[experiment_id]['sensors']
     ckpt_folder = f"{results_base_dir}/checkpoints"
 
     return dict(
@@ -30,7 +45,7 @@ def create_habitat_config_for_experiment(experiment_id, results_base_dir):
         VIDEO_DIR=f"{results_base_dir}/video_dir",
         # To evaluate on all episodes, set this to -1
         TEST_EPISODE_COUNT=-1,
-        NUM_PROCESSES=4,
+        NUM_PROCESSES=BATCHSIZE,
         SENSORS=sensors,
         EVAL_CKPT_PATH_DIR=ckpt_folder,
         CHECKPOINT_FOLDER=ckpt_folder,
@@ -50,7 +65,7 @@ def create_habitat_config_for_experiment(experiment_id, results_base_dir):
                 eps=1e-5,
                 max_grad_norm=0.5,
                 num_steps=128,
-                hidden_size=512,
+                hidden_size=experiment_id_custom_details[experiment_id]['ppo_hidden_size'],
                 use_gae=True,
                 gamma=0.99,
                 tau=0.95,
@@ -63,7 +78,7 @@ def create_habitat_config_for_experiment(experiment_id, results_base_dir):
 
 
 def create_habitat_pointnav_config_for_experiment(experiment_id):
-    sensors = experiment_id_sensors[experiment_id]
+    sensors = experiment_id_custom_details[experiment_id]['sensors']
 
     sensor_details = dict(
         RGB_SENSOR=dict(
@@ -78,6 +93,12 @@ def create_habitat_pointnav_config_for_experiment(experiment_id):
         ),
         EGOMOTION=dict(
             TYPE='EGOMOTION',
+            HFOV=90,
+        ),
+        MIDLEVEL=dict(
+            TYPE='MIDLEVEL',
+            WIDTH=16,
+            HEIGHT=16,
             HFOV=90,
         )
     )

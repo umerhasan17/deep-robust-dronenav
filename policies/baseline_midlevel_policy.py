@@ -9,15 +9,14 @@ from habitat.tasks.nav.nav import (
     IntegratedPointGoalGPSAndCompassSensor,
 )
 from habitat_baselines.rl.models.rnn_state_encoder import RNNStateEncoder
-from habitat_baselines.rl.models.simple_cnn import SimpleCNN
 from habitat_baselines.rl.ppo.policy import Policy, Net
-from mapper.map import convert_rgb_obs_to_map, encode_with_mid_level
 from mapper.mid_level.decoder import UpResNet
 from mapper.mid_level.fc import FC
+from planner.midlevel_cnn import MidLevelCNN
 
 
 class PointNavBaselineMidLevelPolicy(Policy):
-    def __init__(self, observation_space, action_space, hidden_size=128):
+    def __init__(self, observation_space, action_space, hidden_size=512):
         super().__init__(
             PointNavBaselineMidLevelNet(
                 observation_space=observation_space, hidden_size=hidden_size
@@ -48,7 +47,10 @@ class PointNavBaselineMidLevelNet(Net):
             strides=STRIDES
         )
 
-        self.visual_encoder = SimpleCNN(observation_space, hidden_size)
+        self.visual_encoder = MidLevelCNN(
+            observation_space,
+            hidden_size,
+        )
 
         self.state_encoder = RNNStateEncoder(
             (0 if self.is_blind else self._hidden_size) + self._n_input_goal,
@@ -73,8 +75,9 @@ class PointNavBaselineMidLevelNet(Net):
         target_encoding = observations[IntegratedPointGoalGPSAndCompassSensor.cls_uuid]
         x = [target_encoding]
 
+        del observations["rgb"]
+
         if not self.is_blind:
-            observations["rgb"] = encode_with_mid_level(observations["rgb"])
             perception_embed = self.visual_encoder(observations)
             x = [perception_embed] + x
 

@@ -11,7 +11,7 @@ REPRESENTATION_NAMES = ['keypoints3d', 'depth_euclidean']
 
 FC_NEURON_LISTS = [8 * len(REPRESENTATION_NAMES) * 16 * 16, 1024, 1024, 8 * len(REPRESENTATION_NAMES) * 16 * 16]
 RESIDUAL_LAYERS_PER_BLOCK = [2, 2, 2, 2]
-RESIDUAL_SIZE = [32, 64, 128, 256]
+RESIDUAL_SIZE = [32, 32, 32, 32]
 if EXPERIMENT_ID_INDEX >= 2:
     RESIDUAL_NEURON_CHANNEL = [16, 8, 4, 2, 2]
 else:
@@ -32,4 +32,4 @@ MAP_SIZE = (5, 5)  # map size (in [m]), given a 256x256 map, picking map size = 
 
 HABITAT_CONFIGS_PATH = 'configs/'
 
-DEBUG = False
+DEBUG = True

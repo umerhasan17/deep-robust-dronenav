@@ -4,6 +4,8 @@ import torch.nn as nn
 
 from habitat_baselines.common.utils import Flatten
 
+from config.config import BATCHSIZE, MAP_DIMENSIONS
+
 
 class MapPlanner(nn.Module):
 
@@ -33,15 +35,11 @@ class MapPlanner(nn.Module):
             ),
             nn.ReLU(True),
             Flatten(),
-            nn.Linear(400, 512),
-            nn.ReLU(True),
+            nn.Linear(512, 2048),
+            nn.Tanh(),
         )
 
-
-    def forward(self, observations):
-        midlevel_observations = observations["midlevel"]
-        midlevel_observations = midlevel_observations.permute(0, 3, 1, 2)
-        midlevel_observations = midlevel_observations / 255.0  # TODO normalise mid level
-        cnn_input = [midlevel_observations]
-        cnn_input = torch.cat(cnn_input, dim=1)
-        return self.cnn(cnn_input)
+    def forward(self, new_map):
+        """ Returns encoding for new map """
+        assert new_map.shape == (BATCHSIZE, * MAP_DIMENSIONS)
+        return self.cnn(new_map)

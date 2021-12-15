@@ -22,7 +22,7 @@ import torch
 import torch.nn.functional as F
 from matplotlib.transforms import Affine2D
 
-from config.config import MAP_SIZE, MAP_DIMENSIONS
+from config.config import MAP_SIZE, MAP_DIMENSIONS, device
 
 
 def egomotion_transform(input_map_tensor, dX):
@@ -34,11 +34,11 @@ def egomotion_transform(input_map_tensor, dX):
         Returns: concatenated image tensor to pass into FCN  (batch_size, 8*len(representation_names), 16, 16)
     """
 
-    x = dX[0] * (MAP_DIMENSIONS[1] / MAP_SIZE[0])
-    y = dX[1] * (MAP_DIMENSIONS[2] / MAP_SIZE[1])
-    t = dX[2]
+    x = dX[:,0] * (MAP_DIMENSIONS[1] / MAP_SIZE[0])
+    y = dX[:,1] * (MAP_DIMENSIONS[2] / MAP_SIZE[1])
+    t = dX[:,2]
 
-    affine_transform_vector = -np.array([x, y, t])  # compute map correction
+    affine_transform_vector = -torch.stack((x,y,t),-1)
 
     return tensor_transform(input_map_tensor, affine_transform_vector)  # call affine transform function
 
@@ -46,7 +46,7 @@ def egomotion_transform(input_map_tensor, dX):
 def tensor_transform(input_map_tensor, transform):
     """
     Args:
-        input_map_tensor: (batch_size, 3, 256, 256)
+        input_map_tensor: (batch_size, MAP_DIMENSIONS)
         transform: 
 
     Returns: concatenated image tensor to pass into FCN  (batch_size, 8*len(representation_names), 16, 16)
@@ -54,13 +54,18 @@ def tensor_transform(input_map_tensor, transform):
     """
     # Construct a 2d rotation and transformation matrix (using scipy functions)
     width, height = MAP_DIMENSIONS[2], MAP_DIMENSIONS[1]
-    T = torch.tensor((Affine2D().rotate_around(width // 2, height // 2, transform[2]) + Affine2D().translate(
-        tx=transform[0], ty=transform[1])).get_matrix())
+
+    T = []
+    for t in transform:
+        T.append(torch.tensor((Affine2D().rotate_around(width // 2, height // 2, t[2]) + Affine2D().translate(
+            tx=t[0], ty=t[1])).get_matrix()[0:2, :], dtype=torch.float, device=device))
+    T = torch.stack(T)
+
     # unsqueezed_tensor = torch.unsqueeze(input_map_tensor,0)
     # (CxHxW) map tensor expanded to a (1xCxHxW) tensor
 
     # Compute grid transform tensor
-    grid = F.affine_grid(T, input_map_tensor.size())  # a(1xHxWx2) full affine grid transform tensor
+    grid = F.affine_grid(T, input_map_tensor.size(),align_corners=False)  # a(1xHxWx2) full affine grid transform tensor
     # Resample input tensor according to grid transform, returns a rotated and translated tensor
-    output_map_tensor = F.grid_sample(input_map_tensor, grid)  # (1xCxHxW) transformed map
+    output_map_tensor = F.grid_sample(input_map_tensor, grid, align_corners=False)  # (1xCxHxW) transformed map
     return output_map_tensor

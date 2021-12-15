@@ -11,7 +11,7 @@ networks/update.py
 
 import torch
 
-from config.config import BATCHSIZE, MAP_DIMENSIONS
+from config.config import BATCHSIZE, MAP_DIMENSIONS, device
 
 
 def update_map(update_matrix, previous_map):
@@ -26,7 +26,7 @@ def update_map(update_matrix, previous_map):
 
     assert update_matrix.shape == previous_map.shape == batch_map_dim
 
-    updated_map = torch.ones(batch_map_dim)
+    updated_map = torch.ones(batch_map_dim).to(device)
 
     for i in range(BATCHSIZE):
         updated_confidence = (update_matrix[i, 1, :, :] + previous_map[i, 1, :, :])

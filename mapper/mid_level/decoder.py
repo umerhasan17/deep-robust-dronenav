@@ -239,9 +239,9 @@ class UpResNet(nn.Module):
         super().__init__()
         self.inplanes = 8 * len(REPRESENTATION_NAMES)
 
-        self.layer0 = self._make_layer(block, channels[0], channels[1], layers[0], strides[0], (sizes[0], sizes[0]))
-        self.layer1 = self._make_layer(block, channels[1], channels[2], layers[1], strides[1], (sizes[1], sizes[1]))
-        self.layer2 = self._make_layer(block, channels[2], channels[3], layers[2], strides[2], (sizes[2], sizes[2]))
+        # self.layer0 = self._make_layer(block, channels[0], channels[1], layers[0], strides[0], (sizes[0], sizes[0]))
+        # self.layer1 = self._make_layer(block, channels[1], channels[2], layers[1], strides[1], (sizes[1], sizes[1]))
+        # self.layer2 = self._make_layer(block, channels[2], channels[3], layers[2], strides[2], (sizes[2], sizes[2]))
         self.layer3 = self._make_layer(block, channels[3], channels[4], layers[3], strides[2], (sizes[3], sizes[3]))
         print("built net")
 
@@ -255,8 +255,8 @@ class UpResNet(nn.Module):
         return nn.Sequential(*layers)
 
     def forward(self, x):
-        x = self.layer0(x)
-        x = self.layer1(x)
-        x = self.layer2(x)
+        # x = self.layer0(x)
+        # x = self.layer1(x)
+        # x = self.layer2(x)
         x = self.layer3(x)
         return x

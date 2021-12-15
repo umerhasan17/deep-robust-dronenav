@@ -36,7 +36,6 @@ def convert_midlevel_to_map(midlevel_representation, fc_network, decoder_network
         print(f"Passing activation of shape {image.shape} to decoder.")
 
     decoder_output = decoder_network(image)
-    decoder_output = torch.swapaxes(decoder_output, 1, 3)
 
     if DEBUG:
         print(f'Returning output tensor with shape: {decoder_output.shape}')

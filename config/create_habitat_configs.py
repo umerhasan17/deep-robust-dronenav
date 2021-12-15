@@ -17,7 +17,8 @@ experiment_id_custom_details = dict(
     ),
     DRRN=dict(
         sensors=['RGB_SENSOR', 'MIDLEVEL', 'EGOMOTION'],
-        ppo_hidden_size=MAP_DIMENSIONS[0] * MAP_DIMENSIONS[1] * MAP_DIMENSIONS[2],
+        ppo_hidden_size=256,
+        # ppo_hidden_size=MAP_DIMENSIONS[0] * MAP_DIMENSIONS[1] * MAP_DIMENSIONS[2],
     ),
     DRRNActualMap=dict(
         sensors=['MAP_SENSOR'],

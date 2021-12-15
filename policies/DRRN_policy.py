@@ -60,10 +60,10 @@ class PointNavDRRNNet(Net):
 
         self.visual_encoder = MapPlanner()
 
-        # self.state_encoder = RNNStateEncoder(
-        #     (0 if self.is_blind else self._hidden_size) + self._n_input_goal,
-        #     self._hidden_size,
-        # )
+        self.state_encoder = RNNStateEncoder(
+            (0 if self.is_blind else self._hidden_size) + self._n_input_goal,
+            self._hidden_size,
+        )
 
         self.train()
 
@@ -80,6 +80,8 @@ class PointNavDRRNNet(Net):
         return 1
 
     def forward(self, observations, rnn_hidden_states, prev_actions, masks):
+        old_states_shape = rnn_hidden_states.shape
+
         target_encoding = observations[IntegratedPointGoalGPSAndCompassSensor.cls_uuid]
         x = [target_encoding]
 
@@ -87,11 +89,16 @@ class PointNavDRRNNet(Net):
 
         dx = observations["egomotion"]
 
+        print('Original dx shape: ', dx.shape)
         dx = dx[:, 0, 0, :]
 
         # previous map is stored in the rnn hidden states
         previous_map = rnn_hidden_states.reshape((BATCHSIZE, *MAP_DIMENSIONS))
-        previous_map = egomotion_transform(previous_map, dx)
+        try:
+            print('Shapes: ', previous_map.shape, dx.shape)
+            previous_map = egomotion_transform(previous_map, dx)
+        except:
+            print('Fail')
 
         # del observations["rgb"]
         # del observations["egomotion"]
@@ -117,8 +124,10 @@ class PointNavDRRNNet(Net):
 
         new_map = torch.unsqueeze(new_map, 0)
 
-        return x, new_map
+        # return x, new_map
 
-        # x, rnn_hidden_states = self.state_encoder(x, new_map, masks)
+        assert old_states_shape == new_map.shape
 
-        # return x, rnn_hidden_states
+        x, rnn_hidden_states = self.state_encoder(x, new_map, masks)
+
+        return x, rnn_hidden_states

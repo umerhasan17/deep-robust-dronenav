@@ -14,11 +14,12 @@ import torch
 from config.config import BATCHSIZE, MAP_DIMENSIONS, device
 
 
-def update_map(update_matrix, previous_map):
+def update_map(update_matrix, previous_map, eps=1e-6):
     """
     This is the U function defined in our proposal
     :param update_matrix: (batch_size, 2, map_width, map_height)
     :param previous_map: (batch_size, 2, map_width, map_height)
+    :param eps: solves divide by 0 problem
     :return: updated_map: (batch_size, 2, map_width, map_height)
     """
 
@@ -29,7 +30,7 @@ def update_map(update_matrix, previous_map):
     updated_map = torch.ones(batch_map_dim).to(device)
 
     for i in range(BATCHSIZE):
-        updated_confidence = (update_matrix[i, 1, :, :] + previous_map[i, 1, :, :])
+        updated_confidence = (update_matrix[i, 1, :, :] + previous_map[i, 1, :, :] + eps)
         updated_free_space_map = (update_matrix[i, 0, :, :] * update_matrix[i, 1, :, :] + previous_map[i, 0, :, :] * previous_map[i, 1, :, :]) / updated_confidence
         updated_confidence = torch.unsqueeze(updated_confidence, dim=0)
         updated_free_space_map = torch.unsqueeze(updated_free_space_map, dim=0)

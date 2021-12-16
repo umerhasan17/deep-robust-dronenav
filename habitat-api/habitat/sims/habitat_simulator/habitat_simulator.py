@@ -160,7 +160,8 @@ class HabitatSimMidLevelSensor(Sensor):
         # remove alpha channel
         obs = obs[:, :, :RGBSENSOR_DIMENSION]
 
-        obs = torch.Tensor(obs).to(device)
+        obs = torch.Tensor(obs)
+        obs = obs.to(device)
         obs = torch.transpose(obs, 0, 2)
         obs = obs.unsqueeze(0)
 
@@ -209,13 +210,17 @@ class AgentPositionSensor(Sensor):
 
         if self.prev_pose is None:
             self.prev_pose = state
-            initial_displacement = torch.Tensor(np.zeros((1,1,3)))
+            initial_displacement = torch.Tensor(np.zeros((1, 1, 3)))
+            initial_displacement = initial_displacement.to(device)
             sim_obs['egomotion'] = initial_displacement
             return initial_displacement
 
-        world_displacement = state - self.prev_pose # displacement in the world frame
+        world_displacement = state - self.prev_pose  # displacement in the world frame
         world_to_robot_transformation_matrix = Affine2D().rotate_around(0, 0, np.pi/2-self.prev_pose[2]).get_matrix()  # negative rotation to compensate for positive rotation
-        robot_displacement = torch.unsqueeze(torch.Tensor(world_to_robot_transformation_matrix @ world_displacement),0)
+        robot_displacement = torch.Tensor(world_to_robot_transformation_matrix @ world_displacement)
+        robot_displacement = robot_displacement.to(device)
+        robot_displacement = torch.unsqueeze(robot_displacement, 0)
+        robot_displacement = torch.unsqueeze(robot_displacement, 0)
         self.prev_pose = state
         sim_obs['egomotion'] = robot_displacement
         return robot_displacement
@@ -232,14 +237,18 @@ class HabitatSimMidLevelMapSensor(Sensor):
         self.sim_sensor_type = habitat_sim.SensorType.NONE
         super().__init__(config=config)
         # zero confidence, so this is not taken into account in first map update.
-        self.previous_map = torch.zeros((BATCHSIZE, *MAP_DIMENSIONS), requires_grad=True).to(device)
-        self.fc = FC().to(device)
+        self.previous_map = torch.zeros((BATCHSIZE, *MAP_DIMENSIONS))
+        self.previous_map = self.previous_map.to(device)
+        # self.previous_map.requires_grad_(True)
+        self.fc = FC()
+        self.fc.to(device)
         self.upresnet = UpResNet(
             layers=RESIDUAL_LAYERS_PER_BLOCK,
             channels=RESIDUAL_NEURON_CHANNEL,
             sizes=RESIDUAL_SIZE,
             strides=STRIDES
-        ).to(device)
+        )
+        self.upresnet.to(device)
 
     def _get_uuid(self, *args: Any, **kwargs: Any) -> str:
         return 'midlevel_map'
@@ -256,16 +265,17 @@ class HabitatSimMidLevelMapSensor(Sensor):
         )
 
     def get_observation(self, sim_obs):
-        midlevel_obs = sim_obs["midlevel"].to(device).detach()
-        egomotion_obs = sim_obs["egomotion"].to(device).detach()
+        # return previous map for policy, but ensure to calculate the new map for the next update
+        return_value = self.previous_map.clone()
+        midlevel_obs = sim_obs["midlevel"]
+        egomotion_obs = sim_obs["egomotion"]
         decoded_map = convert_midlevel_to_map(midlevel_obs, self.fc, self.upresnet)
         dx = egomotion_obs
-        print('Original dx shape: ', dx.shape)
-        # dx = dx[0, :, :]
         previous_map = egomotion_transform(self.previous_map, dx)
-        new_map = update_map(decoded_map, previous_map)
-        self.previous_map = new_map
-        return new_map
+        with torch.no_grad():
+            new_map = update_map(decoded_map, previous_map)
+            self.previous_map = new_map
+        return return_value[0, :, :, :]
 
 
 @registry.register_sensor(name='MAP_SENSOR')

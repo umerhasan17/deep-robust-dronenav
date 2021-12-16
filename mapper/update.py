@@ -27,7 +27,7 @@ def update_map(update_matrix, previous_map, eps=1e-6):
 
     assert update_matrix.shape == previous_map.shape == batch_map_dim
 
-    updated_map = torch.ones(batch_map_dim).to(device)
+    updated_map = previous_map
 
     for i in range(BATCHSIZE):
         updated_confidence = (update_matrix[i, 1, :, :] + previous_map[i, 1, :, :] + eps)

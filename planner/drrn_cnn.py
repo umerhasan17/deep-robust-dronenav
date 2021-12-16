@@ -43,5 +43,4 @@ class MapPlanner(nn.Module):
 
     def forward(self, new_map):
         """ Returns encoding for new map """
-        assert new_map.shape == (BATCHSIZE, * MAP_DIMENSIONS)
         return self.cnn(new_map)

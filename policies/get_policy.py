@@ -1,6 +1,6 @@
 from habitat_baselines.rl.ppo import PointNavBaselinePolicy
 from policies.baseline_midlevel_policy import PointNavBaselineMidLevelPolicy
-from policies.DRRN_policy import PointNavDRRNPolicy
+from policies.drrn_policy import PointNavDRRNPolicy
 from policies.actual_map_policy import PointNavDRRNActualMapPolicy
 
 

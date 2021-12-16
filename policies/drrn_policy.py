@@ -49,7 +49,7 @@ class PointNavDRRNNet(Net):
 
         self._hidden_size = hidden_size
 
-        self.visual_encoder = MapPlanner()
+        self.visual_encoder = MapPlanner(output_size=self._hidden_size)
 
         self.state_encoder = RNNStateEncoder(
             (0 if self.is_blind else self._hidden_size) + self._n_input_goal,
@@ -74,29 +74,14 @@ class PointNavDRRNNet(Net):
 
         target_encoding = observations[IntegratedPointGoalGPSAndCompassSensor.cls_uuid]
         x = [target_encoding]
-
         new_map = observations['midlevel_map']
 
         if DEBUG:
             print(f'New map generated of shape: {new_map.shape}')
 
         perception_embed = self.visual_encoder(new_map)  # encode back to policy
-
         x = [perception_embed] + x
-
         x = torch.cat(x, dim=1)
-
-        # new_map = torch.flatten(new_map, start_dim=1)
-        #
-        # if DEBUG:
-        #     print(f'New map flattened to shape: {new_map.shape}')
-        #
-        # new_map = torch.unsqueeze(new_map, 0)
-
-        # return x, new_map
-
-        # assert old_states_shape == new_map.shape
-
         x, rnn_hidden_states = self.state_encoder(x, rnn_hidden_states, masks)
 
         return x, rnn_hidden_states

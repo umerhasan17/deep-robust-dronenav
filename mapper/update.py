@@ -23,9 +23,7 @@ def update_map(update_matrix, previous_map, eps=1e-6):
     :return: updated_map: (batch_size, 2, map_width, map_height)
     """
 
-    batch_map_dim = (BATCHSIZE, *MAP_DIMENSIONS)
-
-    assert update_matrix.shape == previous_map.shape == batch_map_dim
+    # assert update_matrix.shape[1:] == previous_map.shape[1:] == MAP_DIMENSIONS
 
     updated_map = previous_map
 

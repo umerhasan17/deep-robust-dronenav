@@ -75,8 +75,6 @@ class PointNavBaselineMidLevelNet(Net):
         target_encoding = observations[IntegratedPointGoalGPSAndCompassSensor.cls_uuid]
         x = [target_encoding]
 
-        del observations["rgb"]
-
         if not self.is_blind:
             perception_embed = self.visual_encoder(observations)
             x = [perception_embed] + x

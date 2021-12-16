@@ -103,7 +103,7 @@ class Observations(dict):
             packaged.
         """
 
-        if EXPERIMENT_ID_INDEX == 2:
+        if EXPERIMENT_ID_INDEX == 2 and len(sensors) == 4:
             uuids = ['rgb', 'midlevel', 'egomotion', 'midlevel_map']
             data = []
             for uuid in uuids:

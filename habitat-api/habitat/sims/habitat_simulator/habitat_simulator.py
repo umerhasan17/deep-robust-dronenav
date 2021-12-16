@@ -37,7 +37,7 @@ except ImportError:
 import habitat
 from config.config import MAP_DIMENSIONS, MAP_SIZE, MAP_DOWNSAMPLE, DATASET_SAVE_PERIOD, DATASET_SAVE_FOLDER, \
     START_IMAGE_NUMBER, MID_LEVEL_DIMENSIONS, DEBUG, REPRESENTATION_NAMES, device, RESIDUAL_LAYERS_PER_BLOCK, \
-    RESIDUAL_NEURON_CHANNEL, RESIDUAL_SIZE, STRIDES
+    RESIDUAL_NEURON_CHANNEL, RESIDUAL_SIZE, STRIDES, BATCHSIZE
 from habitat.core.dataset import Episode
 from habitat.core.logging import logger
 from habitat.core.registry import registry
@@ -167,10 +167,10 @@ class HabitatSimMidLevelSensor(Sensor):
         if DEBUG:
             print(f"Encoding image of shape {obs.shape} with mid level encoders.")
         obs = mid_level_representations(obs, REPRESENTATION_NAMES)
-        obs = obs[0, :, :, :]
         if DEBUG:
             print(f'Returning encoded representation of shape {obs.shape}.')
         sim_obs['midlevel'] = obs
+        obs = obs[0, :, :, :]
         return obs
 
 
@@ -209,7 +209,7 @@ class AgentPositionSensor(Sensor):
 
         if self.prev_pose is None:
             self.prev_pose = state
-            initial_displacement = np.zeros((1,1,3))
+            initial_displacement = torch.Tensor(np.zeros((1,1,3)))
             sim_obs['egomotion'] = initial_displacement
             return initial_displacement
 
@@ -232,14 +232,14 @@ class HabitatSimMidLevelMapSensor(Sensor):
         self.sim_sensor_type = habitat_sim.SensorType.NONE
         super().__init__(config=config)
         # zero confidence, so this is not taken into account in first map update.
-        self.previous_map = torch.zeros(MAP_DIMENSIONS)
-        self.fc = FC()
+        self.previous_map = torch.zeros((BATCHSIZE, *MAP_DIMENSIONS), requires_grad=True).to(device)
+        self.fc = FC().to(device)
         self.upresnet = UpResNet(
             layers=RESIDUAL_LAYERS_PER_BLOCK,
             channels=RESIDUAL_NEURON_CHANNEL,
             sizes=RESIDUAL_SIZE,
             strides=STRIDES
-        )
+        ).to(device)
 
     def _get_uuid(self, *args: Any, **kwargs: Any) -> str:
         return 'midlevel_map'
@@ -256,12 +256,13 @@ class HabitatSimMidLevelMapSensor(Sensor):
         )
 
     def get_observation(self, sim_obs):
-        decoded_map = convert_midlevel_to_map(sim_obs["midlevel"].to(device), self.fc.to(device), self.upresnet.to(device))
-        dx = sim_obs["egomotion"].to(device)
+        midlevel_obs = sim_obs["midlevel"].to(device).detach()
+        egomotion_obs = sim_obs["egomotion"].to(device).detach()
+        decoded_map = convert_midlevel_to_map(midlevel_obs, self.fc, self.upresnet)
+        dx = egomotion_obs
         print('Original dx shape: ', dx.shape)
-        dx = dx[:, 0, 0, :]
+        # dx = dx[0, :, :]
         previous_map = egomotion_transform(self.previous_map, dx)
-        # assert decoded_map.shape == (BATCHSIZE, *MAP_DIMENSIONS)
         new_map = update_map(decoded_map, previous_map)
         self.previous_map = new_map
         return new_map

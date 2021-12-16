@@ -16,7 +16,6 @@ Processing graph:
     -> (BATCHSIZE x 2 x 256 x 256)       -----------------
 """
 
-import numpy as np
 # from torchvision import datasets, transforms
 import torch
 import torch.nn.functional as F
@@ -29,16 +28,16 @@ def egomotion_transform(input_map_tensor, dX):
     """
         Args:
             input_map_tensor: (batch_size, 3, 256, 256)
-            dX: change in robots position vector
+            dX: change in robots position vector (batch_size, 1, 3)
 
         Returns: concatenated image tensor to pass into FCN  (batch_size, 8*len(representation_names), 16, 16)
     """
 
-    x = dX[:,0] * (MAP_DIMENSIONS[1] / MAP_SIZE[0])
-    y = dX[:,1] * (MAP_DIMENSIONS[2] / MAP_SIZE[1])
-    t = dX[:,2]
+    x = dX[:, :, 0] * (MAP_DIMENSIONS[1] / MAP_SIZE[0])
+    y = dX[:, :, 1] * (MAP_DIMENSIONS[2] / MAP_SIZE[1])
+    t = dX[:, :, 2]
 
-    affine_transform_vector = -torch.stack((x,y,t),-1)
+    affine_transform_vector = -torch.stack((x, y, t), -1)
 
     return tensor_transform(input_map_tensor, affine_transform_vector)  # call affine transform function
 
@@ -57,6 +56,7 @@ def tensor_transform(input_map_tensor, transform):
 
     T = []
     for t in transform:
+        t = t[0] # reduce dimension of transform to get actual transform values
         T.append(torch.tensor((Affine2D().rotate_around(width // 2, height // 2, t[2]) + Affine2D().translate(
             tx=t[0], ty=t[1])).get_matrix()[0:2, :], dtype=torch.float, device=device))
     T = torch.stack(T)

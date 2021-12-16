@@ -136,7 +136,7 @@ class HabitatSimMidLevelSensor(Sensor):
 
     def __init__(self, sim, config):
         self._sim = sim
-        self.sim_sensor_type = habitat_sim.SensorType.COLOR
+        self.sim_sensor_type = habitat_sim.SensorType.NONE
         super().__init__(config=config)
 
     def _get_uuid(self, *args: Any, **kwargs: Any) -> str:
@@ -167,9 +167,10 @@ class HabitatSimMidLevelSensor(Sensor):
         if DEBUG:
             print(f"Encoding image of shape {obs.shape} with mid level encoders.")
         obs = mid_level_representations(obs, REPRESENTATION_NAMES)
+        obs = obs[0, :, :, :]
         if DEBUG:
             print(f'Returning encoded representation of shape {obs.shape}.')
-        obs = obs[0, :, :, :]
+        sim_obs['midlevel'] = obs
         return obs
 
 
@@ -199,9 +200,7 @@ class AgentPositionSensor(Sensor):
         )
 
     # This is called whenver reset is called or an action is taken
-    def get_observation(self, _) -> Any:
-
-
+    def get_observation(self, sim_obs) -> Any:
         pos = (self._sim.get_agent_state().position[0],self._sim.get_agent_state().position[2])
         sim_quat = self._sim.get_agent_state().rotation
         alpha = -quat_to_angle_axis(sim_quat)[0] + np.pi/2
@@ -210,12 +209,15 @@ class AgentPositionSensor(Sensor):
 
         if self.prev_pose is None:
             self.prev_pose = state
-            return np.zeros((1,1,3))
+            initial_displacement = np.zeros((1,1,3))
+            sim_obs['egomotion'] = initial_displacement
+            return initial_displacement
 
         world_displacement = state - self.prev_pose # displacement in the world frame
         world_to_robot_transformation_matrix = Affine2D().rotate_around(0, 0, np.pi/2-self.prev_pose[2]).get_matrix()  # negative rotation to compensate for positive rotation
         robot_displacement = torch.unsqueeze(torch.Tensor(world_to_robot_transformation_matrix @ world_displacement),0)
         self.prev_pose = state
+        sim_obs['egomotion'] = robot_displacement
         return robot_displacement
 
 
@@ -227,7 +229,7 @@ class HabitatSimMidLevelMapSensor(Sensor):
 
     def __init__(self, sim, config):
         self._sim = sim
-        self.sim_sensor_type = habitat_sim.SensorType.COLOR
+        self.sim_sensor_type = habitat_sim.SensorType.NONE
         super().__init__(config=config)
         # zero confidence, so this is not taken into account in first map update.
         self.previous_map = torch.zeros(MAP_DIMENSIONS)
@@ -254,8 +256,8 @@ class HabitatSimMidLevelMapSensor(Sensor):
         )
 
     def get_observation(self, sim_obs):
-        decoded_map = convert_midlevel_to_map(sim_obs["midlevel"], self.fc, self.upresnet)
-        dx = sim_obs["egomotion"]
+        decoded_map = convert_midlevel_to_map(sim_obs["midlevel"].to(device), self.fc.to(device), self.upresnet.to(device))
+        dx = sim_obs["egomotion"].to(device)
         print('Original dx shape: ', dx.shape)
         dx = dx[:, 0, 0, :]
         previous_map = egomotion_transform(self.previous_map, dx)

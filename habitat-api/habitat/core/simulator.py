@@ -12,6 +12,7 @@ import attr
 from gym import Space
 from gym.spaces.dict_space import Dict as SpaceDict
 
+from config.config import CURRENT_POLICY, EXPERIMENT_ID_INDEX
 from habitat.config import Config
 from habitat.core.dataset import Episode
 
@@ -102,10 +103,16 @@ class Observations(dict):
             packaged.
         """
 
-        data = [
-            (uuid, sensor.get_observation(*args, **kwargs))
-            for uuid, sensor in sensors.items()
-        ]
+        if EXPERIMENT_ID_INDEX == 2:
+            uuids = ['rgb', 'midlevel', 'egomotion', 'midlevel_map']
+            data = []
+            for uuid in uuids:
+                data.append((uuid, sensors[uuid].get_observation(*args, **kwargs)))
+        else:
+            data = [
+                (uuid, sensor.get_observation(*args, **kwargs))
+                for uuid, sensor in sensors.items()
+            ]
         super().__init__(data)
 
 

@@ -49,15 +49,6 @@ class PointNavDRRNNet(Net):
 
         self._hidden_size = hidden_size
 
-        self.fc = FC()
-
-        self.upresnet = UpResNet(
-            layers=RESIDUAL_LAYERS_PER_BLOCK,
-            channels=RESIDUAL_NEURON_CHANNEL,
-            sizes=RESIDUAL_SIZE,
-            strides=STRIDES
-        )
-
         self.visual_encoder = MapPlanner()
 
         self.state_encoder = RNNStateEncoder(
@@ -80,33 +71,11 @@ class PointNavDRRNNet(Net):
         return 1
 
     def forward(self, observations, rnn_hidden_states, prev_actions, masks):
-        old_states_shape = rnn_hidden_states.shape
 
         target_encoding = observations[IntegratedPointGoalGPSAndCompassSensor.cls_uuid]
         x = [target_encoding]
 
-        decoded_map = convert_midlevel_to_map(observations["midlevel"], self.fc, self.upresnet)
-
-        dx = observations["egomotion"]
-
-        print('Original dx shape: ', dx.shape)
-        dx = dx[:, 0, 0, :]
-
-        # previous map is stored in the rnn hidden states
-        previous_map = rnn_hidden_states.reshape((BATCHSIZE, *MAP_DIMENSIONS))
-        try:
-            print('Shapes: ', previous_map.shape, dx.shape)
-            previous_map = egomotion_transform(previous_map, dx)
-        except:
-            print('Fail')
-
-        # del observations["rgb"]
-        # del observations["egomotion"]
-        # del observations["midlevel"]
-
-        assert decoded_map.shape == (BATCHSIZE, *MAP_DIMENSIONS)
-
-        new_map = update_map(decoded_map, previous_map)
+        new_map = observations['midlevel_map']
 
         if DEBUG:
             print(f'New map generated of shape: {new_map.shape}')
@@ -117,17 +86,17 @@ class PointNavDRRNNet(Net):
 
         x = torch.cat(x, dim=1)
 
-        new_map = torch.flatten(new_map, start_dim=1)
-
-        if DEBUG:
-            print(f'New map flattened to shape: {new_map.shape}')
-
-        new_map = torch.unsqueeze(new_map, 0)
+        # new_map = torch.flatten(new_map, start_dim=1)
+        #
+        # if DEBUG:
+        #     print(f'New map flattened to shape: {new_map.shape}')
+        #
+        # new_map = torch.unsqueeze(new_map, 0)
 
         # return x, new_map
 
-        assert old_states_shape == new_map.shape
+        # assert old_states_shape == new_map.shape
 
-        x, rnn_hidden_states = self.state_encoder(x, new_map, masks)
+        x, rnn_hidden_states = self.state_encoder(x, rnn_hidden_states, masks)
 
         return x, rnn_hidden_states

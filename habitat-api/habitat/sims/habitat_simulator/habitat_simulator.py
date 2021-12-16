@@ -18,7 +18,12 @@ import numpy as np
 import scipy.ndimage as nd
 from matplotlib.transforms import Affine2D
 
+from mapper.map import convert_midlevel_to_map
+from mapper.mid_level.decoder import UpResNet
 from mapper.mid_level.encoder import mid_level_representations
+from mapper.mid_level.fc import FC
+from mapper.transform import egomotion_transform
+from mapper.update import update_map
 
 try:
     import cupy
@@ -31,7 +36,8 @@ except ImportError:
 
 import habitat
 from config.config import MAP_DIMENSIONS, MAP_SIZE, MAP_DOWNSAMPLE, DATASET_SAVE_PERIOD, DATASET_SAVE_FOLDER, \
-    START_IMAGE_NUMBER, MID_LEVEL_DIMENSIONS, DEBUG, REPRESENTATION_NAMES, device
+    START_IMAGE_NUMBER, MID_LEVEL_DIMENSIONS, DEBUG, REPRESENTATION_NAMES, device, RESIDUAL_LAYERS_PER_BLOCK, \
+    RESIDUAL_NEURON_CHANNEL, RESIDUAL_SIZE, STRIDES
 from habitat.core.dataset import Episode
 from habitat.core.logging import logger
 from habitat.core.registry import registry
@@ -132,7 +138,6 @@ class HabitatSimMidLevelSensor(Sensor):
         self._sim = sim
         self.sim_sensor_type = habitat_sim.SensorType.COLOR
         super().__init__(config=config)
-        self.prev_pose = None
 
     def _get_uuid(self, *args: Any, **kwargs: Any) -> str:
         return 'midlevel'
@@ -212,6 +217,52 @@ class AgentPositionSensor(Sensor):
         robot_displacement = torch.unsqueeze(torch.Tensor(world_to_robot_transformation_matrix @ world_displacement),0)
         self.prev_pose = state
         return robot_displacement
+
+
+@registry.register_sensor(name='MIDLEVEL_MAP_SENSOR')
+class HabitatSimMidLevelMapSensor(Sensor):
+    """ Holds the map generated from mid level representations. """
+
+    sim_sensor_type: habitat_sim.SensorType
+
+    def __init__(self, sim, config):
+        self._sim = sim
+        self.sim_sensor_type = habitat_sim.SensorType.COLOR
+        super().__init__(config=config)
+        # zero confidence, so this is not taken into account in first map update.
+        self.previous_map = torch.zeros(MAP_DIMENSIONS)
+        self.fc = FC()
+        self.upresnet = UpResNet(
+            layers=RESIDUAL_LAYERS_PER_BLOCK,
+            channels=RESIDUAL_NEURON_CHANNEL,
+            sizes=RESIDUAL_SIZE,
+            strides=STRIDES
+        )
+
+    def _get_uuid(self, *args: Any, **kwargs: Any) -> str:
+        return 'midlevel_map'
+
+    def _get_sensor_type(self, *args: Any, **kwargs: Any) -> SensorTypes:
+        return self.sim_sensor_type
+
+    def _get_observation_space(self, *args: Any, **kwargs: Any):
+        return spaces.Box(
+            low=0,
+            high=1,
+            shape=MAP_DIMENSIONS,
+            dtype=np.float32,
+        )
+
+    def get_observation(self, sim_obs):
+        decoded_map = convert_midlevel_to_map(sim_obs["midlevel"], self.fc, self.upresnet)
+        dx = sim_obs["egomotion"]
+        print('Original dx shape: ', dx.shape)
+        dx = dx[:, 0, 0, :]
+        previous_map = egomotion_transform(self.previous_map, dx)
+        # assert decoded_map.shape == (BATCHSIZE, *MAP_DIMENSIONS)
+        new_map = update_map(decoded_map, previous_map)
+        self.previous_map = new_map
+        return new_map
 
 
 @registry.register_sensor(name='MAP_SENSOR')

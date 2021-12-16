@@ -16,7 +16,7 @@ experiment_id_custom_details = dict(
         ppo_hidden_size=128,
     ),
     DRRN=dict(
-        sensors=['RGB_SENSOR', 'MIDLEVEL', 'EGOMOTION'],
+        sensors=['RGB_SENSOR', 'MIDLEVEL', 'EGOMOTION', 'MIDLEVEL_MAP_SENSOR'],
         # ppo_hidden_size=256,
         ppo_hidden_size=MAP_DIMENSIONS[0] * MAP_DIMENSIONS[1] * MAP_DIMENSIONS[2],
     ),
@@ -100,6 +100,12 @@ def create_habitat_pointnav_config_for_experiment(experiment_id):
             TYPE='MIDLEVEL',
             WIDTH=16,
             HEIGHT=16,
+            HFOV=90,
+        ),
+        MIDLEVEL_MAP_SENSOR=dict(
+            TYPE='MIDLEVEL_MAP_SENSOR',
+            WIDTH=MAP_DIMENSIONS[1],
+            HEIGHT=MAP_DIMENSIONS[2],
             HFOV=90,
         )
     )
